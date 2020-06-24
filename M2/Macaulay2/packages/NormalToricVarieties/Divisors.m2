@@ -503,7 +503,7 @@ isVeryAmple ToricDivisor := Boolean => D -> (
 	    isSubset(set entries transpose H, set entries transpose P)
 	    )
 	)
-    );
+    )
      
 isFano = method ()
 isFano NormalToricVariety := Boolean => X -> isAmple (- toricDivisor X)
@@ -518,12 +518,13 @@ vertices ToricDivisor := Matrix => D -> (
     X := variety D;
     if not isComplete X then 
     	error "-- expected a divisor on a complete toric variety";
-    if not isEffective D then return null;
     d := dim X;
     V := transpose (matrix vector D | matrix rays variety D);
     V = V | transpose matrix {{1} | toList(d:0)};
-    -( (fourierMotzkin V)#0)^{1..d} 
-    );
+    V = ((fourierMotzkin V)#0)^{1..d};
+    if rank source V === 0 then return null;
+    V
+    )
 
 latticePoints ToricDivisor := Matrix => D -> (
     V := vertices D;
@@ -533,9 +534,8 @@ latticePoints ToricDivisor := Matrix => D -> (
     s := select (numColumns V, i -> V_(d,i) === 1);
     c := (V_s)^{0..d-1};
     c_(sortColumns c) 
-    );
+    )
 
-polytope ToricDivisor := Polyhedron => (
-    cacheValue symbol polytope) (
+polytope ToricDivisor := Polyhedron => (cacheValue symbol polytope) (
     D -> polyhedronFromHData(-matrix rays variety D, matrix vector D)
-    );
+    )
