@@ -1,12 +1,12 @@
 newPackage(
     "GroebnerAlgebras",
     Version => "0.1",
-    Date => "",
-    Headline => "",
+    Date => "30 July 2025",
+    Headline => "routines related to non-commutative rings with good Groebner theory",
     Authors => {{ Name => "", Email => "", HomePage => ""}},
-    Keywords => {""},
+    Keywords => {"Noncommutative Algebra"},
     AuxiliaryFiles => false,
-    DebuggingMode => false
+    DebuggingMode => true
     )
 
 export {}
@@ -17,41 +17,27 @@ export {}
 -* Documentation section *-
 beginDocumentation()
 
-doc ///
+///
 Key
   GroebnerAlgebras
 Headline
+  routines related to non-commutative rings with good Groebner theory
 Description
   Text
-  Tree
   Example
-  CannedExample
-Acknowledgement
-Contributors
-References
-Caveat
+    1+1 == 2
 SeeAlso
-Subnodes
 ///
 
-doc ///
+///
 Key
 Headline
 Usage
 Inputs
 Outputs
-Consequences
-  Item
 Description
   Text
   Example
-  CannedExample
-  Code
-  Pre
-ExampleFiles
-Contributors
-References
-Caveat
 SeeAlso
 ///
 
