@@ -51,6 +51,8 @@ isWellDefined GroebnerAlgebra := Boolean => A -> (
     -- - do the cij's needs to be units?
     )
 
+
+-- the function vZeroWeylAlgebra(n,0) below with make the n-th Weyl algebra
 weylAlgebra = method()
 weylAlgebra PolynomialRing := GroebnerAlgebra => S -> (
     R := coefficientRing S;
@@ -69,6 +71,39 @@ weylAlgebra PolynomialRing := GroebnerAlgebra => S -> (
 -- Quantum exterior algebra: c_{ij} = c_{ji}^{-1},
 -- and squares of generators must be zero
 -- (is this a Groebner algebra, by our definition?)
+
+
+vZeroWeylAlgebra = method()
+vZeroWeylAlgebra(ZZ,ZZ) := (n,m) -> (
+    -- creates the zeroth piece V^0(D_{n+m}) of the Kashiwara--Malgrange V-filtration of D_{n+m} along V(t_1..t_m)
+    -- here, D_{n+m} is the Weyl algebra on n+m variables, x_1..x_n and t_1..t_m
+    -- the generators of this algebra are x_1..x_n, dx_1..dx_n, -dt_1*t_1...-dt_m*t_m, t_1..t_m
+    -- the relations come from the realization of this algebra as a subalgebra of D_{n+m}
+    -- it is common to use the variable s_i for -dt_i*t_i
+    -- when m=0, this function returns the Weyl algebra D_n
+    -- when m=1, this algebra can be uses to calculate Bernstein--Sato polynomials following Briancon--Maisonobe
+    -- when m>=1, this algebra is important in the theory of mixed Hodge modules
+    -- the coefficient ring will be QQ
+    x:= local x;
+    dx:= local dx;
+    s:= local s;
+    t:= local t;
+    S:= QQ[x_1..x_n, dx_1..dx_n, s_1..s_m, t_1..t_m];
+    C := hashTable flatten for i from 0 to 2*n+2*m-2 list for j from i+1 to 2*n+2*m-1 list (
+	(i,j) => 1_QQ);
+    DList := {};
+    for i from 0 to 2*n+2*m-2 do (
+	for j from i+1 to 2*n+2*m-1 do (
+	    if (i<n) and (j==n+i) then DList=append(DList,(i,j) => -1_S)
+	    else if (i>=2*n) and (i<2*n+m) and (j==m+i) then DList=append(DList,(i,j) => -t_(i-2*n+1))
+	    else DList=append(DList, (i,j) => 0_S)
+	    );
+	);
+    D := hashTable DList;
+    -- to do: call groebnerAlgebra
+    D
+    )
+    
 
 
 -* Documentation section *-
