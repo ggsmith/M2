@@ -15,6 +15,8 @@ newPackage(
 
 export {
     "groebnerAlgebra",
+    "quantumPolynomialRing",
+    "vZeroWeylAlgebra",
     "weylAlgebra",
     "GroebnerAlgebra"
     }
@@ -70,15 +72,10 @@ weylAlgebra PolynomialRing := GroebnerAlgebra => S -> (
     C
     )
 
---Quantum polynomial ring:
--- c_{ij} = c_{ji}^{-1}.
--- Quantum exterior algebra: c_{ij} = c_{ji}^{-1},
--- and squares of generators must be zero
--- (is this a Groebner algebra, by our definition?)
 
 
 vZeroWeylAlgebra = method()
-vZeroWeylAlgebra(ZZ,ZZ) := (n,m) -> (
+vZeroWeylAlgebra(ZZ,ZZ) := GroebnerAlgebra => (n,m) -> (
     -- creates the zeroth piece V^0(D_{n+m}) of the Kashiwara--Malgrange V-filtration of D_{n+m} along V(t_1..t_m)
     -- here, D_{n+m} is the Weyl algebra on n+m variables, x_1..x_n and t_1..t_m
     -- the generators of this algebra are x_1..x_n, dx_1..dx_n, -dt_1*t_1...-dt_m*t_m, t_1..t_m
@@ -88,28 +85,54 @@ vZeroWeylAlgebra(ZZ,ZZ) := (n,m) -> (
     -- when m=1, this algebra can be uses to calculate Bernstein--Sato polynomials following Briancon--Maisonobe
     -- when m>=1, this algebra is important in the theory of mixed Hodge modules
     -- the coefficient ring will be QQ
-    x:= local x;
-    dx:= local dx;
-    s:= local s;
-    t:= local t;
+    x:= getSymbol "x";
+    dx:= getSymbol "dx";
+    s:= getSymbol "s";
+    t:= getSymbol "t";
     S:= QQ[x_1..x_n, dx_1..dx_n, s_1..s_m, t_1..t_m];
     C := hashTable flatten for i from 0 to 2*n+2*m-2 list for j from i+1 to 2*n+2*m-1 list (
-	(i,j) => 1_QQ);
-    DList := {};
-    for i from 0 to 2*n+2*m-2 do (
-	for j from i+1 to 2*n+2*m-1 do (
-	    if (i<n) and (j==n+i) then DList=append(DList,(i,j) => -1_S)
-	    else if (i>=2*n) and (i<2*n+m) and (j==m+i) then DList=append(DList,(i,j) => -t_(i-2*n+1))
-	    else DList=append(DList, (i,j) => 0_S)
-	    );
-	);
-    D := hashTable DList;
+        (i,j) => 1_QQ);
+    D := hashTable flatten for i from 0 to 2*n+2*m-2 list (
+        for j from i+1 to 2*n+2*m-1 list (
+            if (i<n) and (j==n+i) then
+                (i,j) => -1_S
+            else if (i>=2*n) and (i<2*n+m) and (j==m+i) then
+                (i,j) => - S_(m+i)
+            else
+                continue
+                --(i,j) => 0_S
+            )
+        );
     -- to do: call groebnerAlgebra
-    D
+    (C, D, S)
     )
     
+--Quantum polynomial ring:
+-- c_{ij} = c_{ji}^{-1}.
+-- Quantum exterior algebra: c_{ij} = c_{ji}^{-1},
+-- and squares of generators must be zero
+-- (is this a Groebner algebra, by our definition?)
 
+quantumPolynomialRing = method()
+quantumPolynomialRing Ring := R -> (
+    -- R is of the form kk[x_0..x_(n-1)].
+    n := numgens R;
+    q := getSymbol "q";
+    allpairs := subsets(0..(n-1), 2);
+    allvars := for ij in allpairs list q_(toSequence ij);
+    K := coefficientRing R;
+    L := frac(K[allvars]);
+    S := L (monoid R);
+    D := new HashTable;
+    C := hashTable for a from 0 to #allpairs - 1 list (
+        ij := toSequence allpairs#a;
+        ij => L_a
+        );
+    (C, D, S)
+    )
 
+-- todo: enveloping algebra of sl(2), or sl(n)
+--       homogeneous Clifford algebras
 -* Documentation section *-
 beginDocumentation()
 
@@ -146,7 +169,32 @@ SeeAlso
 TEST ///
   R = QQ[a..d]
   weylAlgebra R
+
+  (C, D, S) = vZeroWeylAlgebra(2, 2)
+  describe S
+  gens S
+  C
 ///
+
+-*
+  restart
+  needsPackage "GroebnerAlgebras"
+*-
+TEST ///
+  R = QQ[x_0..x_3]
+  (C, D, S) = quantumPolynomialRing R
+  (values C)/ring
+
+///
+
+-- todo to get groebnerAlgebra up and running:
+-- want, e.g: A = groebnerAlgebra(S, C, D) -- C elements are in coeff ring of S, D elements are in S.
+--  1. in m2 directory in Macaulay2: m2/polyrings.m2: newWeylAlgebra, Ring Monoid.
+--     also: isGroebnerAlgebra, AfterPrint.
+--  2. rawWeylAlgebra in Macaulay2/d/interface.dd
+--  3. in Macaulay2/e/interface: IM2_Ring_weyl_algebra, IM2_Ring_solvable_algebra.
+--      e/interface/ring.cpp, e/interface/ring.h
+--  4. in Macaulay2/e/weylalg.hpp, weylalg.cpp: the actual c++ code to do the multiplication (and powers).
 
 end--
 
