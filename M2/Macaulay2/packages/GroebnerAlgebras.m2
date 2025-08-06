@@ -3,11 +3,13 @@ newPackage(
     Version => "0.1",
     Date => "30 July 2025",
     Headline => "routines related to non-commutative rings with good Groebner theory",
-    Authors => {{
-        Name => "Gregory G. Smith", 
-        Email => "ggsmith@mast.queensu.ca", 
-        HomePage => "http://www.mast.queensu.ca/~ggsmith"},
-    { Name => "", Email => "", HomePage => ""}},
+    Authors => {{ Name => "Michael Perlman", 
+	          Email => "mperlman@ua.edu", 
+		  HomePage => "https://sites.google.com/view/michaelperlman/home"},
+	        { Name => "Gregory G. Smith", 
+                  Email => "ggsmith@mast.queensu.ca", 
+                  HomePage => "http://www.mast.queensu.ca/~ggsmith"},
+               {  Name => "", Email => "", HomePage => ""}},
     Keywords => {"Noncommutative Algebra"},
     AuxiliaryFiles => false,
     DebuggingMode => true
@@ -58,19 +60,20 @@ isWellDefined GroebnerAlgebra := Boolean => A -> (
     )
 
 
--- the function vZeroWeylAlgebra(n,0) below with make the n-th Weyl algebra
-weylAlgebra = method()
-weylAlgebra PolynomialRing := GroebnerAlgebra => S -> (
-    R := coefficientRing S;
-    n := numgens S;
-    if odd n then error "expected an even number of variables";
-    m := n // 2;
-    C := hashTable flatten for i from 0 to n-2 list for j from i+1 to n-1 list (
-        (i,j) => 1_R
-        );
+-- this is our first attempt at making the Weyl algebra
+-- a newer implementation is below
+--weylAlgebra = method()
+--weylAlgebra PolynomialRing := GroebnerAlgebra => S -> (
+   -- R := coefficientRing S;
+   -- n := numgens S;
+   -- if odd n then error "expected an even number of variables";
+   -- m := n // 2;
+   -- C := hashTable flatten for i from 0 to n-2 list for j from i+1 to n-1 list (
+       -- (i,j) => 1_R
+       -- );
     -- TODO: make D, call groebnerAlgebra.
-    C
-    )
+   -- C
+   -- )
 
 
 
@@ -105,6 +108,11 @@ vZeroWeylAlgebra(ZZ,ZZ) := GroebnerAlgebra => (n,m) -> (
         );
     -- to do: call groebnerAlgebra
     (C, D, S)
+    )
+
+weylAlgebra = method()
+weylAlgebra(ZZ) := GrobnerAlgebra => n -> (
+    vZeroWeylAlgebra(n,0)
     )
     
 --Quantum polynomial ring:
@@ -167,8 +175,7 @@ SeeAlso
   needsPackage "GroebnerAlgebras"
 *-
 TEST ///
-  R = QQ[a..d]
-  weylAlgebra R
+  W = weylAlgebra(3)
 
   (C, D, S) = vZeroWeylAlgebra(2, 2)
   describe S
@@ -207,3 +214,4 @@ uninstallPackage "GroebnerAlgebras"
 restart
 installPackage "GroebnerAlgebras"
 viewHelp "GroebnerAlgebras"
+
