@@ -3,7 +3,11 @@ newPackage(
     Version => "0.1",
     Date => "30 July 2025",
     Headline => "routines related to non-commutative rings with good Groebner theory",
-    Authors => {{ Name => "", Email => "", HomePage => ""}},
+    Authors => {{
+        Name => "Gregory G. Smith", 
+        Email => "ggsmith@mast.queensu.ca", 
+        HomePage => "http://www.mast.queensu.ca/~ggsmith"},
+    { Name => "", Email => "", HomePage => ""}},
     Keywords => {"Noncommutative Algebra"},
     AuxiliaryFiles => false,
     DebuggingMode => true
