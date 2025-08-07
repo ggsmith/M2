@@ -1,9 +1,9 @@
 newPackage(
     "GroebnerAlgebras",
     Version => "0.1",
-    Date => "30 July 2025",
+    Date => "06 August 2025",
     Headline => "routines related to non-commutative rings with good Groebner theory",
-    Authors => {{ Name => "Michael Brown",
+    Authors => {{ Name => "Michael K. Brown",
 		  Email => "mkb0096@auburn.edu",
 		  HomePage => "https://webhome.auburn.edu/~mkb0096/"},
 	          Name => "Michael Perlman", 
