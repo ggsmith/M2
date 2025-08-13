@@ -6,7 +6,7 @@ newPackage(
     Authors => {{ Name => "Michael K. Brown",
 		  Email => "mkb0096@auburn.edu",
 		  HomePage => "https://webhome.auburn.edu/~mkb0096/"},
-	          Name => "Michael Perlman", 
+	        {  Name => "Michael Perlman", 
 	          Email => "mperlman@ua.edu", 
 		  HomePage => "https://sites.google.com/view/michaelperlman/home"},
 	        { Name => "Gregory G. Smith", 
@@ -23,7 +23,8 @@ export {
     "quantumPolynomialRing",
     "vZeroWeylAlgebra",
     "weylAlgebra",
-    "GroebnerAlgebra"
+    "GroebnerAlgebra",
+    "homogeneousCliffordAlgebra"
     }
 
 -* Code section *-
@@ -114,7 +115,7 @@ vZeroWeylAlgebra(ZZ,ZZ) := GroebnerAlgebra => (n,m) -> (
     )
 
 weylAlgebra = method()
-weylAlgebra(ZZ) := GrobnerAlgebra => n -> (
+weylAlgebra(ZZ) := GroebnerAlgebra => n -> (
     vZeroWeylAlgebra(n,0)
     )
     
@@ -143,21 +144,43 @@ quantumPolynomialRing Ring := R -> (
     )
 
 homogeneousCliffordAlgebra = method()
+--The problem here is that a homogeneous Clifford algebra is not a Groebner algebra, by our definition.
+--This is because there are relations involving the squares of the generators (i.e. we need diagonal entries
+--in our hashtable D).
+--One has the same problem with an exterior algebra.
 homogeneousCliffordAlgebra (Ring, List) := (S, L) -> (
-    --S is of the form kk[x_0..x_(n-1)], where char(k) is not 2; and L is a regular sequence of quadratic forms in S.
+    --S is of the form kk[x_0..x_(n-1)], where char(k) is not 2;
+    --and L is a regular sequence of quadratic forms in S.
     n := numgens S;
-    vecs := apply(n, i -> entries (id_(S^n))_i); --standard basis vectors, as lists.
-    B := apply(#L, i -> matrix (
-	    apply(n, j -> (
-	       apply(n, l -> L_i(new Sequence from (vecs_j + vecs_l)) - L_i(new Sequence from vecs_j) - L_i(new Sequence from vecs_l)
-			)
-		    )
-		)
-	    )
+    c := #L;
+    --vecs := apply(n, i -> entries (id_(S^n))_i); --standard basis vectors, as lists.
+    --B := apply(#L, i -> matrix (
+    --	      apply(n, j -> (
+	       --apply(n, l -> L_i(new Sequence from (vecs_j + vecs_l)) - L_i(new Sequence from vecs_j) - L_i(new Sequence from vecs_l)
+		--	)
+		   -- )
+	--	)
+	   -- )
+--	);
+    e := getSymbol "e";
+    t := getSymbol "t";
+    kk := coefficientRing S;
+    newS := kk(monoid[t_1..t_c, e_0..e_(n-1)]);
+    X := vars S;
+    B := apply(c, i -> sub(diff(transpose(X) * X, L_i), newS));
+    print B;
+    C := hashTable flatten for i from 0 to n+c-2 list for j from i+1 to n+c-1 list (
+	(i, j) => if i < c or j < c then 1_(kk) else -1_(kk)
 	);
+    D := hashTable flatten for i from 0 to n+c-2 list for j from i+1 to n+c-1 list (
+	(i, j) => if i < c or j < c then 0_(newS) else 2 * (sum apply (c, l -> (B#l)_(i-c,j-c)*newS_l))
+	);
+    (C, D,S)
+    --Can maybe speed up calculation of the list B of bilinear forms by taking appropriate derivatives of the quadrics in L. 
     --B is a list of #L matrices, the symmetric bilinear forms associated to the quadrics in L.
     --C should be all -1's. D#(i,j) should be 2 * (for l from 0 to c-1 sum entries (transpose(matrix{vecs_j})*B_l*matrix{vecs_i})_0)
     )
+
 
 -- todo: enveloping algebra of sl(2), or sl(n)
 --       homogeneous Clifford algebras
@@ -211,7 +234,9 @@ TEST ///
   R = QQ[x_0..x_3]
   (C, D, S) = quantumPolynomialRing R
   (values C)/ring
-
+  S = QQ[x_0..x_3]
+  L = {x_0^2, x_1^2}
+  homogeneousCliffordAlgebra(S, L)
 ///
 
 -- todo to get groebnerAlgebra up and running:
