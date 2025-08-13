@@ -142,6 +142,23 @@ quantumPolynomialRing Ring := R -> (
     (C, D, S)
     )
 
+homogeneousCliffordAlgebra = method()
+homogeneousCliffordAlgebra (Ring, List) := (S, L) -> (
+    --S is of the form kk[x_0..x_(n-1)], where char(k) is not 2; and L is a regular sequence of quadratic forms in S.
+    n := numgens S;
+    vecs := apply(n, i -> entries (id_(S^n))_i); --standard basis vectors, as lists.
+    B := apply(#L, i -> matrix (
+	    apply(n, j -> (
+	       apply(n, l -> L_i(new Sequence from (vecs_j + vecs_l)) - L_i(new Sequence from vecs_j) - L_i(new Sequence from vecs_l)
+			)
+		    )
+		)
+	    )
+	);
+    --B is a list of #L matrices, the symmetric bilinear forms associated to the quadrics in L.
+    --C should be all -1's. D#(i,j) should be 2 * (for l from 0 to c-1 sum entries (transpose(matrix{vecs_j})*B_l*matrix{vecs_i})_0)
+    )
+
 -- todo: enveloping algebra of sl(2), or sl(n)
 --       homogeneous Clifford algebras
 -* Documentation section *-
