@@ -153,32 +153,21 @@ homogeneousCliffordAlgebra (Ring, List) := (S, L) -> (
     --and L is a regular sequence of quadratic forms in S.
     n := numgens S;
     c := #L;
-    --vecs := apply(n, i -> entries (id_(S^n))_i); --standard basis vectors, as lists.
-    --B := apply(#L, i -> matrix (
-    --	      apply(n, j -> (
-	       --apply(n, l -> L_i(new Sequence from (vecs_j + vecs_l)) - L_i(new Sequence from vecs_j) - L_i(new Sequence from vecs_l)
-		--	)
-		   -- )
-	--	)
-	   -- )
---	);
     e := getSymbol "e";
     t := getSymbol "t";
     kk := coefficientRing S;
     newS := kk(monoid[t_1..t_c, e_0..e_(n-1)]);
     X := vars S;
     B := apply(c, i -> sub(diff(transpose(X) * X, L_i), newS));
-    print B;
+    --B is a list of #L matrices, the symmetric bilinear forms associated to the quadrics in L.
     C := hashTable flatten for i from 0 to n+c-2 list for j from i+1 to n+c-1 list (
 	(i, j) => if i < c or j < c then 1_(kk) else -1_(kk)
 	);
     D := hashTable flatten for i from 0 to n+c-2 list for j from i+1 to n+c-1 list (
 	(i, j) => if i < c or j < c then 0_(newS) else 2 * (sum apply (c, l -> (B#l)_(i-c,j-c)*newS_l))
 	);
-    (C, D,S)
-    --Can maybe speed up calculation of the list B of bilinear forms by taking appropriate derivatives of the quadrics in L. 
-    --B is a list of #L matrices, the symmetric bilinear forms associated to the quadrics in L.
-    --C should be all -1's. D#(i,j) should be 2 * (for l from 0 to c-1 sum entries (transpose(matrix{vecs_j})*B_l*matrix{vecs_i})_0)
+    --C should be all -1's. D#(i,j) should be 2 * (sum_{l = 1}^c B_l(v_i, v_j)), where v_s is the s'th standard basis vector. 
+    (C, D, S)
     )
 
 
