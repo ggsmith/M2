@@ -172,7 +172,6 @@ homogeneousCliffordAlgebra (Ring, List) := (S, L) -> (
 
 
 -- todo: enveloping algebra of sl(2), or sl(n)
---       homogeneous Clifford algebras
 -* Documentation section *-
 beginDocumentation()
 
@@ -223,6 +222,7 @@ TEST ///
   R = QQ[x_0..x_3]
   (C, D, S) = quantumPolynomialRing R
   (values C)/ring
+  
   S = QQ[x_0..x_3]
   L = {x_0^2, x_1^2}
   homogeneousCliffordAlgebra(S, L)
