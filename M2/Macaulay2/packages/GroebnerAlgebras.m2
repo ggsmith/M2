@@ -36,10 +36,14 @@ groebnerAlgebra(HashTable, HashTable) := GroebnerAlgebra => (C, D) -> (
     -- C has keys (i,j), $0 \le i < j \le n-1$, and its values are all
     -- non-zero elements of the coefficient ring R.
     -- D also has keys (i,j), $0 \le i < j \le n-1$, and its values
-    -- are "small" entries in the ring S (typically, linear polynomials).
+    --  are "small" entries in the ring S (typically, linear polynomials).
+    --  (i.e. in S, x_i*x_j > all monomials in D#(i,j)).
+    -- D can also (optionally) have keys (i,i), whose value is a polynomial in S,
+    --  less than xi^2 in the monomial order
     -- Creates the ring A = R<x0, ..., x_(n-1)> with multiplication
     --  x_j * x_i = C#(i,j) * x_i * x_j + D#(i,j)
-    -- (where the D#(i,j) is considered as an element of A).
+    --  x_i^2 = D#(i,i)
+    -- (where the D#(i,i) and D#(i,j) are considered as elements of A).
     Ss := unique for f in values D list ring f;
     if #Ss != 1 then error "expected all elements of second hash table to be in the same polynomial ring";
     S := Ss#0;
