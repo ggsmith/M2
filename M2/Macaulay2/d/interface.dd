@@ -569,6 +569,25 @@ export rawWeylAlgebra(e:Expr):Expr := (
      else WrongNumArgs(4));
 setupfun("rawWeylAlgebra",rawWeylAlgebra);
 
+export rawGroebnerAlgebra(e:Expr):Expr := (
+     when e is a:Sequence do 
+     if length(a) == 3 then 
+     when a.0 is C:RawMatrixCell do
+     when a.1 is D:RawMatrixCell do
+     if isSequenceOfSmallIntegers(a.2) then
+       toExpr(Ccode(RawRingOrNull, "IM2_Ring_groebner_algebra(",
+               C.p, ",",
+               D.p, ",",
+               getSequenceOfSmallIntegers(a.2),
+               ")"))
+     else WrongArg(3, "a sequence of small integers")
+     else WrongArgMatrix(2)
+     else WrongArgMatrix(1)
+     else WrongNumArgs(3)
+     else WrongNumArgs(3)
+     );
+setupfun("rawGroebnerAlgebra",rawGroebnerAlgebra);
+
 export rawSolvableAlgebra(e:Expr):Expr := (
      when e is a:Sequence do 
      if length(a) == 2 then 

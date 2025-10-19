@@ -106,6 +106,22 @@ const Ring /* or null */ *IM2_Ring_solvable_algebra(const Ring *R,
    ordering.
 */
 
+const Ring* /* or null */ IM2_Ring_groebner_algebra(const Matrix* C,
+                                                    const Matrix* D,
+                                                    M2_arrayint squaring_indices);
+/* C is a matrix over a commutative ring R
+   D is a matrix over a polynomial ring of the form S = R[x_0..x_n]. (the x's can be any variable names).
+   C_(i,j) is only used if i < j
+   D_(i,j) is only used if i < j, or i==j and i is in squaring_indices.
+   The equations in the free associative algebra in the x_i's over R, will be, for i < j:
+   x_j * x_i - C_(i,j) * x_i * x_j - D_(i,j)
+   For all i in squaring_indices, we add in the equations:
+   x_i^2 - D_(i,i)
+   Assumptions: The matrices C, D, and information about squares should determine an associative algebra.
+   The resulting associative algebra A has a monomial basis of (sorted) monomials of S.
+   This ring A is returned
+*/
+  
 const Ring * /* or null */ rawRingM2FreeAlgebra(const Ring *coefficientRing,
                                                 M2_ArrayString names,
                                                 const Ring *degreeRing,

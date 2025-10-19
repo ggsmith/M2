@@ -193,6 +193,30 @@ const Ring /* or null */ *IM2_Ring_weyl_algebra(const Ring *R,
   }
 }
 
+const Ring* /* or null */ IM2_Ring_groebner_algebra(const Matrix* C,
+                                                    const Matrix* D,
+                                                    M2_arrayint squaring_indices)
+{
+  try
+    {
+      return globalZZ;
+      // if (P == nullptr)
+      //   {
+      //     ERROR("expected a polynomial ring");
+      //     return nullptr;
+      //   }
+      //      SolvableAlgebra *result = SolvableAlgebra::create(P, Q);
+      //
+      //      intern_polyring(result);
+      //      return result;
+  } catch (const exc::engine_error& e)
+    {
+      ERROR(e.what());
+      return nullptr;
+  }
+}
+
+
 const Ring /* or null */ *IM2_Ring_solvable_algebra(const Ring *R,
                                                     const Matrix *Q)
 {
