@@ -152,22 +152,25 @@ homogeneousCliffordAlgebra = method()
 --This is because there are relations involving the squares of the generators (i.e. we need diagonal entries
 --in our hashtable D).
 --One has the same problem with an exterior algebra.
-homogeneousCliffordAlgebra (Ring, List) := (S, L) -> (
-    --S is of the form kk[x_0..x_(n-1)], where char(k) is not 2;
-    --and L is a regular sequence of quadratic forms in S.
-    n := numgens S;
+homogeneousCliffordAlgebra (List) := (L) -> (
+    --L is a regular sequence of quadratic forms in a polynomial ring S over a field.
     c := #L;
+    Ss := unique for i from 0 to c - 1 list ring L#i;
+    if #Ss != 1 then error "expected all list elements to be in the same polynomial ring";
+    S := Ss#0;
+    n := numgens S;
     e := getSymbol "e";
     t := getSymbol "t";
     kk := coefficientRing S;
     newS := kk(monoid[t_1..t_c, e_0..e_(n-1)]);
+    --should we have an optional argument that allows the user to change the order of the variables in the clifford algebra?
     X := vars S;
     B := apply(c, i -> sub(diff(transpose(X) * X, L_i), newS));
-    --B is a list of #L matrices, the symmetric bilinear forms associated to the quadrics in L.
+    --B is a list of c matrices, the symmetric bilinear forms associated to the quadrics in L.
     C := hashTable flatten for i from 0 to n+c-2 list for j from i+1 to n+c-1 list (
 	(i, j) => if i < c or j < c then 1_(kk) else -1_(kk)
 	);
-    D := hashTable flatten for i from 0 to n+c-2 list for j from i+1 to n+c-1 list (
+    D := hashTable flatten for i from 0 to n+c-1 list for j from i to n+c-1 list (
 	(i, j) => if i < c or j < c then 0_(newS) else 2 * (sum apply (c, l -> (B#l)_(i-c,j-c)*newS_l))
 	);
     --C should be all -1's. D#(i,j) should be 2 * (sum_{l = 1}^c B_l(v_i, v_j)), where v_s is the s'th standard basis vector. 
