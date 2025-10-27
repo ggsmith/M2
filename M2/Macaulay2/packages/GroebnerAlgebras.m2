@@ -27,6 +27,8 @@ export {
     "homogeneousCliffordAlgebra"
     }
 
+exportFrom_Core { "raw", "rawGroebnerAlgebra" }
+
 -* Code section *-
 GroebnerAlgebra = new Type of PolynomialRing
 
@@ -52,11 +54,19 @@ groebnerAlgebra(HashTable, HashTable) := GroebnerAlgebra => (C, D) -> (
     if #Rs =!= 1 or Rs#0 =!= R then
         error "expected all elements of the first hash table to be in the same coefficient ring";
     if not all(values C, f -> f != 0) then error "expected non-zero elements (in fact units?) of the coefficient rings";
-    -- this will call an engine routine to create the ring
+
+    n := numgens S;
+    matC := mutableMatrix(R, n, n);
+    for kv in pairs C do matC_(kv#0) = kv#1;
+    matC = matrix matC;
+    matD := mutableMatrix(S, n, n);
+    for kv in pairs D do matD_(kv#0) = kv#1;
+    matD = matrix matD;
+    sqIndices := for i when i < n list if D#?(i,i) then i else continue;
+    rawA := rawGroebnerAlgebra(raw matC, raw matD, sqIndices);
+    return(matC, matD, sqIndices, rawA);
+    -- this calls an engine routine to create the ring
     -- need some aux functions, e.g. promote, lift.  Use WeylAlgebras as a template.  Or AssociativeAlgebras?
-    -- rawGroebnerAlgebra(package up C, D for the engine)
-    A := new GroebnerAlgebra;
-    return A -- this is wrong!!
     )
 
 isWellDefined GroebnerAlgebra := Boolean => A -> (
@@ -148,11 +158,7 @@ quantumPolynomialRing Ring := R -> (
     )
 
 homogeneousCliffordAlgebra = method()
---The problem here is that a homogeneous Clifford algebra is not a Groebner algebra, by our definition.
---This is because there are relations involving the squares of the generators (i.e. we need diagonal entries
---in our hashtable D).
---One has the same problem with an exterior algebra.
-homogeneousCliffordAlgebra (List) := (L) -> (
+homogeneousCliffordAlgebra List := L -> (
     --L is a regular sequence of quadratic forms in a polynomial ring S over a field.
     c := #L;
     Ss := unique for i from 0 to c - 1 list ring L#i;
@@ -171,10 +177,12 @@ homogeneousCliffordAlgebra (List) := (L) -> (
 	(i, j) => if i < c or j < c then 1_(kk) else -1_(kk)
 	);
     D := hashTable flatten for i from 0 to n+c-1 list for j from i to n+c-1 list (
-	(i, j) => if i < c or j < c then 0_(newS) else 2 * (sum apply (c, l -> (B#l)_(i-c,j-c)*newS_l))
+	(i, j) => if i < c or j < c then continue else 2 * (sum apply (c, l -> (B#l)_(i-c,j-c)*newS_l))
 	);
-    --C should be all -1's. D#(i,j) should be 2 * (sum_{l = 1}^c B_l(v_i, v_j)), where v_s is the s'th standard basis vector. 
-    (C, D, S)
+    print D;
+    --C should be all -1's. D#(i,j) should be 2 * (sum_{l = 1}^c B_l(v_i, v_j)),
+    -- where v_s is the s'th standard basis vector.
+    groebnerAlgebra(C, D)
     )
 
 
@@ -233,6 +241,42 @@ TEST ///
   S = QQ[x_0..x_3]
   L = {x_0^2, x_1^2}
   homogeneousCliffordAlgebra(S, L)
+///
+
+-*
+  restart
+  needsPackage "GroebnerAlgebras"
+*-
+TEST ///
+  debug Core
+  rawGroebnerAlgebra -- C, D, which diagonal entries in D we want.
+  -- xj * xi = C_ij * xi * xj
+  R = QQ[x_0, x_1];
+  hCA = homogeneousCliffordAlgebra({x_0^2, x_1^2})
+  C = mutableMatrix(QQ, numgens R + 2, numgens R + 2) -- 2 is the length of the list
+  for kv in pairs hCA#0 do C_(kv#0) = kv#1
+  C = matrix C
+  S = hCA#2
+  describe S
+  D = mutableMatrix(S, numrows C, numcols C)
+  for kv in pairs hCA#1 do D_(kv#0) = kv#1
+  D = matrix D
+  sqIndices = {2,3}
+  A = rawGroebnerAlgebra(raw C, raw D, sqIndices)
+  
+///
+
+
+-*
+  restart
+  needsPackage "GroebnerAlgebras"
+*-
+TEST ///
+  R = QQ[x_0, x_1];
+  retval = homogeneousCliffordAlgebra({x_0^2, x_1^2})
+
+  R = QQ[x_0, x_1];
+  retval = homogeneousCliffordAlgebra({x_0^2+x_0*x_1, x_1^2})
 ///
 
 -- todo to get groebnerAlgebra up and running:
