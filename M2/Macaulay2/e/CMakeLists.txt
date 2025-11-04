@@ -291,6 +291,7 @@ set(SRCLIST
   tower # TODO: move rawTowerTranslatePoly to e/interface
   ExponentList
   weylalg
+  GroebnerAlgebra
   # Faugère's F4 Algorithm
   gb-f4/Basis
   gb-f4/GBF4Computation

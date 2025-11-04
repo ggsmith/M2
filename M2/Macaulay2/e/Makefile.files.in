@@ -175,6 +175,7 @@ INTERFACE = \
 	spair \
 	text-io \
 	ExponentList \
+	GroebnerAlgebra \
 	weylalg
 
 COMMANDS = \

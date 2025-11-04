@@ -15,6 +15,7 @@
 #include "frac.hpp"
 #include "localring.hpp"
 #include "weylalg.hpp"
+#include "GroebnerAlgebra.hpp"
 #include "skewpoly.hpp"
 #include "solvable.hpp"
 #include "matrix.hpp"
@@ -199,16 +200,9 @@ const Ring* /* or null */ IM2_Ring_groebner_algebra(const Matrix* C,
 {
   try
     {
-      return globalZZ;
-      // if (P == nullptr)
-      //   {
-      //     ERROR("expected a polynomial ring");
-      //     return nullptr;
-      //   }
-      //      SolvableAlgebra *result = SolvableAlgebra::create(P, Q);
-      //
-      //      intern_polyring(result);
-      //      return result;
+      GroebnerAlgebra *result = GroebnerAlgebra::create(C, D, squaring_indices);
+      intern_polyring(result);
+      return result;
   } catch (const exc::engine_error& e)
     {
       ERROR(e.what());

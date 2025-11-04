@@ -240,7 +240,7 @@ TEST ///
   
   S = QQ[x_0..x_3]
   L = {x_0^2, x_1^2}
-  homogeneousCliffordAlgebra(S, L)
+  homogeneousCliffordAlgebra L
 ///
 
 -*

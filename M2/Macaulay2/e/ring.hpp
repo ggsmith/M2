@@ -35,6 +35,7 @@ class SchurRing;
 class SchurSnRing;
 class SkewPolynomialRing;
 class SolvableAlgebra;
+class GroebnerAlgebra;
 class M2FreeAlgebra;
 class M2FreeAlgebraQuotient;
 class M2FreeAlgebraOrQuotient;
@@ -249,6 +250,10 @@ class Ring : public MutableEngineObject
   virtual const SolvableAlgebra *cast_to_SolvableAlgebra() const { return nullptr; }
   virtual SolvableAlgebra *cast_to_SolvableAlgebra() { return nullptr; }
   virtual const WeylAlgebra *cast_to_WeylAlgebra() const { return nullptr; }
+
+  virtual const GroebnerAlgebra *cast_to_GroebnerAlgebra() const { return nullptr; }
+  virtual GroebnerAlgebra *cast_to_GroebnerAlgebra() { return nullptr; }
+  
   virtual RRR *cast_to_RRR() { return nullptr; }
   virtual const RRR *cast_to_RRR() const { return nullptr; }
   virtual RRi *cast_to_RRi() { return nullptr; }
