@@ -55,6 +55,7 @@ groebnerAlgebra(HashTable, HashTable) := GroebnerAlgebra => (C, D) -> (
         error "expected all elements of the first hash table to be in the same coefficient ring";
     if not all(values C, f -> f != 0) then error "expected non-zero elements (in fact units?) of the coefficient rings";
 
+    
     n := numgens S;
     matC := mutableMatrix(R, n, n);
     for kv in pairs C do matC_(kv#0) = kv#1;
@@ -63,8 +64,64 @@ groebnerAlgebra(HashTable, HashTable) := GroebnerAlgebra => (C, D) -> (
     for kv in pairs D do matD_(kv#0) = kv#1;
     matD = matrix matD;
     sqIndices := for i when i < n list if D#?(i,i) then i else continue;
-    rawA := rawGroebnerAlgebra(raw matC, raw matD, sqIndices);
-    return(matC, matD, sqIndices, rawA);
+    GA := new PolynomialRing from rawGroebnerAlgebra(raw matC, raw matD, sqIndices); -- RM below ==> GA
+    --RM.monoid     = M;
+    GA.BaseRing   = R; -- is this needed? Should be R here?
+    RM.FlatMonoid = F;
+    RM.numallvars = numallvars; -- define this
+    RM.baseRings  = append(R.baseRings, R);
+    RM.cache      = new CacheTable;
+    RM.promoteDegree = (
+	if F.Options.DegreeMap === null
+	then makepromoter degreeLength RM -- means the degree map is zero
+	else (
+	    dm := F.Options.DegreeMap;
+	    nd := F.Options.DegreeRank;
+	    degs -> apply(degs, deg -> degreePad(nd, dm deg))));
+    RM.liftDegree = (
+	if F.Options.DegreeLift === null
+	then makepromoter degreeLength R -- lifing the zero degree map
+	else (
+	    lm := F.Options.DegreeLift;
+	    degs -> apply(degs, lm)));
+    --
+    if R.?char          then RM.char          = R.char; -- TODO: what ring doesn't have .char?
+    if F.?degreesRing   then RM.degreesRing   = F.degreesRing;
+    if F.?degreesMonoid then RM.degreesMonoid = F.degreesMonoid;
+    RM.isCommutative = RWeyl === {} and MWeyl === {} and not RM.?SkewCommutative;
+    -- see enginering.m2
+    commonEngineRingInitializations RM;
+    -- TODO: what is this?
+    RM _ M := (f,m) -> new R from rawCoefficient(R.RawRing, raw f, raw m);
+    -- printing
+    processMons := (coeffs, monoms) -> if #coeffs === 0 then expression 0 else sum(coeffs, monoms,
+	(c, m) -> expression(if c == 1 then 1 else promote(c, R)) * expression(new M from m));
+    -- TODO: put in something prettier when there are constants
+    expression RM := if constants then f -> toString raw f else f -> processMons rawPairs(raw R, raw f);
+    --
+    if MOpts.Inverses === true then (
+	denominator RM := f -> RM_( - min \ apply(transpose exponents f,x->x|{0}) );
+	numerator   RM := f -> f * denominator f);
+    -----------------------------------------------------------------------------
+    RM.generators           = apply(nvars, i -> RM_i);
+    RM.generatorSymbols     = M.generatorSymbols;
+    RM.generatorExpressions = M.generatorExpressions;
+    --
+    RM.index        = hashTable apply(RM.generatorSymbols, 0 ..< nvars,  identity);
+    RM.indexSymbols = hashTable join(
+	-- FIXME: switching the order of the following two reveals a bug in Schubert2
+	apply(if R.?indexSymbols then pairs R.indexSymbols else {},
+	    (sym, x) -> sym => new RM from rawPromote(raw RM, raw x)),
+	apply(RM.generatorSymbols, RM.generators, identity)
+	);
+    try RM.indexStrings = applyKeys(RM.indexSymbols, toString); -- no error, because this is often harmless
+    GA)
+
+
+    --return(matC, matD, sqIndices, rawA);
+   
+
+    
     -- this calls an engine routine to create the ring
     -- need some aux functions, e.g. promote, lift.  Use WeylAlgebras as a template.  Or AssociativeAlgebras?
     )
