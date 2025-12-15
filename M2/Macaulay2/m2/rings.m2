@@ -64,6 +64,9 @@ isSkewCommutative Ring := R -> false
 isWeylAlgebra = method(TypicalValue => Boolean)
 isWeylAlgebra Ring := R -> false
 
+isGroebnerAlgebra = method(TypicalValue => Boolean)
+isGroebnerAlgebra Ring := R -> false
+
 ZZ.isCommutative = true
 QQ.isCommutative = true
 RR.isCommutative = true

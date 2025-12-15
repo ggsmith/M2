@@ -23,14 +23,95 @@ export {
     "quantumPolynomialRing",
     "vZeroWeylAlgebra",
     "weylAlgebra",
-    "GroebnerAlgebra",
+    --"GroebnerAlgebra",
     "homogeneousCliffordAlgebra"
     }
 
-exportFrom_Core { "raw", "rawGroebnerAlgebra" }
+exportFrom_Core {
+    "commonEngineRingInitializations",
+    "generatorExpressions",
+    "generatorSymbols",
+    "indexStrings",
+    "indexSymbols",
+    "numallvars",
+    "raw",
+    "rawCoefficient",
+    "rawGroebnerAlgebra",
+    "rawPairs",
+    "rawPromote",
+    "RawRing"
+    }
 
--* Code section *-
-GroebnerAlgebra = new Type of PolynomialRing
+--GroebnerAlgebra = new Type of PolynomialRing -- place into Core for now.
+
+-- private function which does the work of Ring Array
+makeGroebnerAlgebra = method()
+makeGroebnerAlgebra(Matrix, Matrix, List) := (C, D, sqIndices) -> (
+    -- TODO: want to allow the coefficient ring R to be a polynomial ring, this means
+    -- distinguishing between Monoid and FlatMonoid.
+    GA := new GroebnerAlgebra from rawGroebnerAlgebra(raw C, raw D, sqIndices); -- RM below ==> GA
+    R := coefficientRing ring D;
+    M := monoid ring D;
+    F := M; -- will be the flat monoid
+    nvars := numgens M;
+    GA.isCommutative = false;
+    GA.monoid     = M;
+    GA.char       = R.char;
+    GA.baseRings  = append(R.baseRings, R);
+    GA.cache      = new CacheTable;
+    GA.numallvars = nvars;
+    GA.generators = apply(nvars, i -> GA_i);
+    GA.generatorSymbols     = M.generatorSymbols;
+    GA.generatorExpressions = M.generatorExpressions;
+    -- degrees
+    GA.degreesRing   = F.degreesRing;
+    GA.degreesMonoid = F.degreesMonoid;
+    -- indexes of variables
+    GA.index        = hashTable apply(GA.generatorSymbols, 0 ..< nvars,  identity);
+    GA.indexSymbols = hashTable join(
+	apply(if R.?indexSymbols then pairs R.indexSymbols else {},
+	    (sym, x) -> sym => new GA from rawPromote(raw GA, raw x)),
+	apply(GA.generatorSymbols, GA.generators, identity)
+	);
+    GA.indexStrings = applyKeys(GA.indexSymbols, toString);
+    -- coefficients of a monomial
+    GA _ M := (f,m) -> new R from rawCoefficient(R.RawRing, raw f, raw m);
+    -- for printing
+    processMons := (coeffs, monoms) -> if #coeffs === 0 then expression 0 else sum(coeffs, monoms,
+	(c, m) -> expression(if c == 1 then 1 else promote(c, R)) * expression(new M from m));
+    expression GA := f -> processMons rawPairs(raw R, raw f);
+    -- promotions
+    commonEngineRingInitializations GA; -- TODO next time: to be tested.
+    return GA;
+    -----------------------------------------------------------------------------
+    -- if R#?"has quotient elements" or isQuotientOf(PolynomialRing, R) then (
+    --     RM.RawRing = rawQuotientRing(RM.RawRing, R.RawRing);
+    --     RM#"has quotient elements" = true);
+    -- --
+-*    
+    RM.BaseRing   = K;
+    RM.FlatMonoid = F;
+
+    RM.promoteDegree = (
+	if F.Options.DegreeMap === null
+	then makepromoter degreeLength RM -- means the degree map is zero
+	else (
+	    dm := F.Options.DegreeMap;
+	    nd := F.Options.DegreeRank;
+	    degs -> apply(degs, deg -> degreePad(nd, dm deg))));
+    RM.liftDegree = (
+	if F.Options.DegreeLift === null
+	then makepromoter degreeLength R -- lifing the zero degree map
+	else (
+	    lm := F.Options.DegreeLift;
+	    degs -> apply(degs, lm)));
+    -- see enginering.m2
+    commonEngineRingInitializations RM;
+    -- TODO: what is this?
+    RM _ M := (f,m) -> new R from rawCoefficient(R.RawRing, raw f, raw m);
+
+*-    
+    )
 
 groebnerAlgebra = method()
 groebnerAlgebra(HashTable, HashTable) := GroebnerAlgebra => (C, D) -> (
@@ -54,7 +135,6 @@ groebnerAlgebra(HashTable, HashTable) := GroebnerAlgebra => (C, D) -> (
     if #Rs =!= 1 or Rs#0 =!= R then
         error "expected all elements of the first hash table to be in the same coefficient ring";
     if not all(values C, f -> f != 0) then error "expected non-zero elements (in fact units?) of the coefficient rings";
-
     
     n := numgens S;
     matC := mutableMatrix(R, n, n);
@@ -64,66 +144,8 @@ groebnerAlgebra(HashTable, HashTable) := GroebnerAlgebra => (C, D) -> (
     for kv in pairs D do matD_(kv#0) = kv#1;
     matD = matrix matD;
     sqIndices := for i when i < n list if D#?(i,i) then i else continue;
-    GA := new PolynomialRing from rawGroebnerAlgebra(raw matC, raw matD, sqIndices); -- RM below ==> GA
-    --RM.monoid     = M;
-    GA.BaseRing   = R; -- is this needed? Should be R here?
-    RM.FlatMonoid = F;
-    RM.numallvars = numallvars; -- define this
-    RM.baseRings  = append(R.baseRings, R);
-    RM.cache      = new CacheTable;
-    RM.promoteDegree = (
-	if F.Options.DegreeMap === null
-	then makepromoter degreeLength RM -- means the degree map is zero
-	else (
-	    dm := F.Options.DegreeMap;
-	    nd := F.Options.DegreeRank;
-	    degs -> apply(degs, deg -> degreePad(nd, dm deg))));
-    RM.liftDegree = (
-	if F.Options.DegreeLift === null
-	then makepromoter degreeLength R -- lifing the zero degree map
-	else (
-	    lm := F.Options.DegreeLift;
-	    degs -> apply(degs, lm)));
-    --
-    if R.?char          then RM.char          = R.char; -- TODO: what ring doesn't have .char?
-    if F.?degreesRing   then RM.degreesRing   = F.degreesRing;
-    if F.?degreesMonoid then RM.degreesMonoid = F.degreesMonoid;
-    RM.isCommutative = RWeyl === {} and MWeyl === {} and not RM.?SkewCommutative;
-    -- see enginering.m2
-    commonEngineRingInitializations RM;
-    -- TODO: what is this?
-    RM _ M := (f,m) -> new R from rawCoefficient(R.RawRing, raw f, raw m);
-    -- printing
-    processMons := (coeffs, monoms) -> if #coeffs === 0 then expression 0 else sum(coeffs, monoms,
-	(c, m) -> expression(if c == 1 then 1 else promote(c, R)) * expression(new M from m));
-    -- TODO: put in something prettier when there are constants
-    expression RM := if constants then f -> toString raw f else f -> processMons rawPairs(raw R, raw f);
-    --
-    if MOpts.Inverses === true then (
-	denominator RM := f -> RM_( - min \ apply(transpose exponents f,x->x|{0}) );
-	numerator   RM := f -> f * denominator f);
-    -----------------------------------------------------------------------------
-    RM.generators           = apply(nvars, i -> RM_i);
-    RM.generatorSymbols     = M.generatorSymbols;
-    RM.generatorExpressions = M.generatorExpressions;
-    --
-    RM.index        = hashTable apply(RM.generatorSymbols, 0 ..< nvars,  identity);
-    RM.indexSymbols = hashTable join(
-	-- FIXME: switching the order of the following two reveals a bug in Schubert2
-	apply(if R.?indexSymbols then pairs R.indexSymbols else {},
-	    (sym, x) -> sym => new RM from rawPromote(raw RM, raw x)),
-	apply(RM.generatorSymbols, RM.generators, identity)
-	);
-    try RM.indexStrings = applyKeys(RM.indexSymbols, toString); -- no error, because this is often harmless
-    GA)
-
-
-    --return(matC, matD, sqIndices, rawA);
-   
-
-    
-    -- this calls an engine routine to create the ring
-    -- need some aux functions, e.g. promote, lift.  Use WeylAlgebras as a template.  Or AssociativeAlgebras?
+    GA := makeGroebnerAlgebra(matC, matD, sqIndices);
+    return GA
     )
 
 isWellDefined GroebnerAlgebra := Boolean => A -> (
@@ -325,12 +347,34 @@ TEST ///
 
 
 -*
+-- XXX
   restart
   needsPackage "GroebnerAlgebras"
 *-
 TEST ///
   R = QQ[x_0, x_1];
-  retval = homogeneousCliffordAlgebra({x_0^2, x_1^2})
+  Cl = homogeneousCliffordAlgebra({x_0^2, x_1^2})
+
+  assert(coefficientRing Cl === QQ)
+  assert(char Cl === 0)
+  assert(baseRing Cl === QQ)
+  assert(numgens Cl === 4)
+  assert(Cl.baseRings === {ZZ, QQ})
+  assert(numgens degreesRing Cl === 1)
+  assert(numgens degreesMonoid Cl  === 1)
+  assert(degree t_1 === {1})
+  assert(index t_1 === 0)
+  assert(index t_2 === 1)
+  assert(index e_0 === 2)
+  assert(index e_1 === 3)
+  assert(index(2*e_1) === null)
+  1_Cl == 1
+  2_Cl == 2
+  assert(ring 2_Cl === Cl)
+  -- (2_Cl)^3 -- not functional yet
+  R === Cl
+
+  assert(3 == (t_1 + t_1 + t_1)_(t_1))
 
   R = QQ[x_0, x_1];
   retval = homogeneousCliffordAlgebra({x_0^2+x_0*x_1, x_1^2})

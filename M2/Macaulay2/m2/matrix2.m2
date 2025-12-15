@@ -158,7 +158,7 @@ complementOkay = method()     -- modeled after isAffineRing, but allows ZZ, too
 complementOkay Ring := R -> isField R or R === ZZ
 complementOkay PolynomialRing := R -> (
      -- complement works over skew-commutative rings, so we don't insist on commutativity
-     (options R).WeylAlgebra === {} and not (options R).Inverses and complementOkay coefficientRing R
+     (options R).WeylAlgebra === {} and not (options R).Inverses and not isGroebnerAlgebra R and complementOkay coefficientRing R
      )
 complementOkay QuotientRing := R -> isField R or complementOkay ambient R
 
