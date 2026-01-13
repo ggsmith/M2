@@ -27,7 +27,6 @@ isQuotientOf(Type,QuotientRing) := (X,S) -> instance(ambient S,X) or isQuotientO
 isHomogeneous QuotientRing := R -> isHomogeneous ideal R
 isWeylAlgebra QuotientRing := R -> isWeylAlgebra ambient R
 isSkewCommutative QuotientRing := R -> isSkewCommutative ambient R
-isGroebnerAlgebra QuotientRing := R -> isGroebnerAlgebra ambient R
 
 coefficientRing QuotientRing := (cacheValue coefficientRing) (R -> coefficientRing ambient R)
 ambient QuotientRing := Ring => (cacheValue ambient) (R -> last R.baseRings)

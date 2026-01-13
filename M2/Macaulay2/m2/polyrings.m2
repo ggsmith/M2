@@ -21,15 +21,6 @@ PolynomialRing#AfterPrint = R -> (
     if R.?homogenize then (" and one homogenizing variable")
     )
 
--- TODO next time: get this functional, probably in GroebnerAlgebras.m2
-GroebnerAlgebra = new Type of PolynomialRing
-GroebnerAlgebra.synonym = "Groebner algebra"
-GroebnerAlgebra#AfterPrint = R -> (
-    class R
-    -- if #R.monoid.Options#GroebnerAlgebra > 0
-    -- then (", ", " with ...")
-    )
-
 isPolynomialRing = method(TypicalValue => Boolean)
 isPolynomialRing Thing := x -> false
 isPolynomialRing PolynomialRing := R -> true
@@ -39,7 +30,6 @@ isWeylAlgebra PolynomialRing := R -> isWeylAlgebra coefficientRing R or ( o := o
     o.?WeylAlgebra     and 0 < #o.WeylAlgebra)
 isSkewCommutative PolynomialRing := R -> isSkewCommutative coefficientRing R or (
     R.?SkewCommutative and 0 < #R.SkewCommutative)
-isGroebnerAlgebra GroebnerAlgebra := Boolean => R -> true
 
 -- TODO: is the second one needed?
 Ring _ List :=
@@ -164,7 +154,6 @@ Ring Monoid := PolynomialRing => (R, M) -> (
     MWeyl := if MOpts.?WeylAlgebra     then MOpts.WeylAlgebra else {};
     RSkew := if ROpts.?SkewCommutative then ROpts.SkewCommutative else {};
     MSkew := if MOpts.?SkewCommutative then MOpts.SkewCommutative else {};
-    MGrAlg := if MOpts#?GroebnerAlgebra then MOpts#GroebnerAlgebra else {};
     -- FIXME: remove once Weyl variables are stored as indices in the monoid
     RWeyl = monoidIndices_R RWeyl;
     MWeyl = monoidIndices_M MWeyl;

@@ -1,3 +1,8 @@
+-- TODOs (created 15 Dec 2025)
+-- Next up (in 2026): get arithmetic working for these rings, in the engine.
+-- 1. complementOkay in matrix2.m2 should disallow Groebner Algebras?  Or sometimes?
+-- 2. our makeGroebnerAlgebra doesn't allow quotients yet.
+-- 3. We don't allow the base to be a polynomial ring (i.e. towers not handled).
 newPackage(
     "GroebnerAlgebras",
     Version => "0.1",
@@ -23,17 +28,23 @@ export {
     "quantumPolynomialRing",
     "vZeroWeylAlgebra",
     "weylAlgebra",
-    --"GroebnerAlgebra",
-    "homogeneousCliffordAlgebra"
+    "GroebnerAlgebra",
+    "homogeneousCliffordAlgebra",
+    "isGroebnerAlgebra"
     }
 
 exportFrom_Core {
+    "BaseRing",
     "commonEngineRingInitializations",
+    "degreePad",
     "generatorExpressions",
     "generatorSymbols",
     "indexStrings",
     "indexSymbols",
+    "liftDegree",
+    "makepromoter",
     "numallvars",
+    "promoteDegree",
     "raw",
     "rawCoefficient",
     "rawGroebnerAlgebra",
@@ -42,7 +53,19 @@ exportFrom_Core {
     "RawRing"
     }
 
---GroebnerAlgebra = new Type of PolynomialRing -- place into Core for now.
+-- TODO next time: get this functional, probably in GroebnerAlgebras.m2
+GroebnerAlgebra = new Type of PolynomialRing
+GroebnerAlgebra.synonym = "Groebner algebra"
+GroebnerAlgebra#AfterPrint = R -> (
+    class R
+    -- if #R.monoid.Options#GroebnerAlgebra > 0
+    -- then (", ", " with ...")
+    )
+
+isGroebnerAlgebra = method()
+isGroebnerAlgebra Ring := Boolean => R -> false
+isGroebnerAlgebra QuotientRing := Boolean => R -> isGroebnerAlgebra ambient R
+isGroebnerAlgebra GroebnerAlgebra := Boolean => R -> true
 
 -- private function which does the work of Ring Array
 makeGroebnerAlgebra = method()
@@ -52,14 +75,37 @@ makeGroebnerAlgebra(Matrix, Matrix, List) := (C, D, sqIndices) -> (
     GA := new GroebnerAlgebra from rawGroebnerAlgebra(raw C, raw D, sqIndices); -- RM below ==> GA
     R := coefficientRing ring D;
     M := monoid ring D;
-    F := M; -- will be the flat monoid
+    F := M; -- will be the flat monoid, once we allow this
     nvars := numgens M;
     GA.isCommutative = false;
     GA.monoid     = M;
+    GA.FlatMonoid = F;
+    GA.BaseRing   = R;
     GA.char       = R.char;
     GA.baseRings  = append(R.baseRings, R);
-    GA.cache      = new CacheTable;
     GA.numallvars = nvars;
+    GA.cache      = new CacheTable;
+    -- degree promote and lift
+    -- warning: the following two functions must be defined before something below,
+    --   otherwise (for example) matrix promotion fails due to mismatched degrees.
+    --   Not sure why yet!
+    GA.promoteDegree = (
+	if F.Options.DegreeMap === null
+	then makepromoter degreeLength GA -- means the degree map is zero
+	else (
+	    dm := F.Options.DegreeMap;
+	    nd := F.Options.DegreeRank;
+	    degs -> apply(degs, deg -> degreePad(nd, dm deg))
+            )
+        );
+    GA.liftDegree = (
+	if F.Options.DegreeLift === null
+	then makepromoter degreeLength R -- lifing the zero degree map
+	else (
+	    lm := F.Options.DegreeLift;
+	    degs -> apply(degs, lm)
+            )
+        );
     GA.generators = apply(nvars, i -> GA_i);
     GA.generatorSymbols     = M.generatorSymbols;
     GA.generatorExpressions = M.generatorExpressions;
@@ -87,30 +133,6 @@ makeGroebnerAlgebra(Matrix, Matrix, List) := (C, D, sqIndices) -> (
     -- if R#?"has quotient elements" or isQuotientOf(PolynomialRing, R) then (
     --     RM.RawRing = rawQuotientRing(RM.RawRing, R.RawRing);
     --     RM#"has quotient elements" = true);
-    -- --
--*    
-    RM.BaseRing   = K;
-    RM.FlatMonoid = F;
-
-    RM.promoteDegree = (
-	if F.Options.DegreeMap === null
-	then makepromoter degreeLength RM -- means the degree map is zero
-	else (
-	    dm := F.Options.DegreeMap;
-	    nd := F.Options.DegreeRank;
-	    degs -> apply(degs, deg -> degreePad(nd, dm deg))));
-    RM.liftDegree = (
-	if F.Options.DegreeLift === null
-	then makepromoter degreeLength R -- lifing the zero degree map
-	else (
-	    lm := F.Options.DegreeLift;
-	    degs -> apply(degs, lm)));
-    -- see enginering.m2
-    commonEngineRingInitializations RM;
-    -- TODO: what is this?
-    RM _ M := (f,m) -> new R from rawCoefficient(R.RawRing, raw f, raw m);
-
-*-    
     )
 
 groebnerAlgebra = method()
@@ -372,12 +394,27 @@ TEST ///
   2_Cl == 2
   assert(ring 2_Cl === Cl)
   -- (2_Cl)^3 -- not functional yet
-  R === Cl
-
   assert(3 == (t_1 + t_1 + t_1)_(t_1))
 
-  R = QQ[x_0, x_1];
-  retval = homogeneousCliffordAlgebra({x_0^2+x_0*x_1, x_1^2})
+  a = promote(1/3, Cl)
+  assert(a === (1/3)_Cl)
+  assert(lift((1/3)_Cl, QQ) === 1/3)
+
+  a = promote(3, Cl)
+  assert(a === 3_Cl)
+  assert(lift(3_Cl, ZZ) === 3)
+  assert liftable(3_Cl, ZZ)
+  assert not liftable((1/3)_Cl, ZZ)
+
+  m = matrix{{Cl_0+Cl_1, Cl_1 + 1}}
+  isHomogeneous m
+  degrees source m
+  degrees target m
+
+  m = matrix {{1,2},{3,5/2}}
+  mCl = promote(m, Cl)
+  mQQ = lift(mCl, QQ)
+  assert(m == mQQ)
 ///
 
 -- todo to get groebnerAlgebra up and running:

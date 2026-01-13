@@ -343,7 +343,7 @@ factoryGood = R -> factoryAlmostGood R and not (options R).Inverses
 frac EngineRing := R -> if isField R then R else if R.?frac then R.frac else (
      o := options R;
      if o.Inverses then error "not implemented : fraction fields of rings with inverses";
-     if o.WeylAlgebra =!= {} or R.?SkewCommutative or isGroebnerAlgebra R
+     if not isCommutative R
      then error "fraction field of non-commutative ring requested";
      if not factoryGood R then error "not implemented yet: fraction fields of polynomial rings over rings other than ZZ, QQ, or a finite field";
      R.frac = F := new FractionField from rawFractionRing R.RawRing;
