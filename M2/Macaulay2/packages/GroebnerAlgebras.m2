@@ -31,7 +31,8 @@ newPackage(
 export {
     "groebnerAlgebra",
     "quantumPolynomialRing",
-    "toAssociateAlgebra",
+    "toAssociativeAlgebra",
+    "associativeEquations",
     "vZeroWeylAlgebra",
     "weylAlgebra",
     "GroebnerAlgebra",
@@ -186,9 +187,9 @@ isWellDefined GroebnerAlgebra := Boolean => A -> (
     )
 
 -- XXX
-toAssociateAlgebra = method()
-toAssociateAlgebra GroebnerAlgebra := Ideal => G -> (
-  A := QQ<|reverse gens ring last G.cache.GroebnerAlgebra, Degrees => {1,1,2,2}|>;
+toAssociativeAlgebra = method()
+toAssociativeAlgebra GroebnerAlgebra := Ideal => G -> (
+  A := QQ<|reverse gens ring last G.cache.GroebnerAlgebra|>;
   (C, D) := toSequence G.cache.GroebnerAlgebra;
   D' := substitute(D, A);
   nA := numgens A;
@@ -201,6 +202,63 @@ toAssociateAlgebra GroebnerAlgebra := Ideal => G -> (
   I := I1 + I2;
   I
   )
+
+associativeEquations = method()
+associativeEquations GroebnerAlgebra := List => GA -> (
+    associativeEquations toAssociativeAlgebra GA;
+    )
+associativeEquations Ideal := List => I -> (
+    -- I is the result of toAssociativeAlgebra.
+    R := ring I;
+    gbI := NCGB(I, 10);
+    triples := subsets(gens R, 3);
+    for t in triples list (
+        (a,b,c) := toSequence t;
+        try1 := NCReductionTwoSided(NCReductionTwoSided(a*b, gbI) * c, gbI);
+        try2 := NCReductionTwoSided(a * NCReductionTwoSided(b*c, gbI), gbI);
+        try1 - try2
+        )
+    )
+
+-*
+restart
+needsPackage "GroebnerAlgebras"
+*-
+TEST ///
+  S = QQ[x_0..x_3]
+  L = {x_0^2, x_1^2}
+  GA = homogeneousCliffordAlgebra L
+  I = toAssociativeAlgebra GA
+  assert all(associativeEquations I, f -> f == 0)
+///
+
+-*
+restart
+needsPackage "GroebnerAlgebras"
+*-
+TEST ///
+  S = QQ[x_0..x_2]
+  C = hashTable {
+      (0,1) => 2_QQ,
+      (0,2) => 2_QQ,
+      (1,2) => 2_QQ
+      }
+  D = hashTable {
+      (0,1) => x_0 + x_1 + x_2,
+      (0,2) => x_0 + x_1 + x_2,
+      (1,2) => x_0 + x_1 + x_2
+      }
+  GA = groebnerAlgebra(C, D)
+  I = toAssociativeAlgebra GA
+  I_2
+  (x_2 * x_1) * x_0 - I_2 * x_0
+  
+XXX  f21 * x_0
+  
+  associativeEquations I
+  
+///
+
 
 -- this is our first attempt at making the Weyl algebra
 -- a newer implementation is below
@@ -485,7 +543,7 @@ TEST ///
   -- Let's compute the Associative Algebra of a Groebner Algebra.
   R = QQ[x_0, x_1];
   Cl = homogeneousCliffordAlgebra({x_0^2, x_1^2})
-  I = toAssociateAlgebra Cl
+  I = toAssociativeAlgebra Cl
   ideal NCGB(I, 10) -- TODO: need a test here...
 ///
 
@@ -498,7 +556,20 @@ TEST ///
   -- Let's compute the Associative Algebra of a Groebner Algebra.
   R = QQ[x_0, x_1];
   Cl = homogeneousCliffordAlgebra({x_0^2, x_1^2})
-  I = toAssociateAlgebra Cl
+  I = toAssociativeAlgebra Cl
+  ideal NCGB(I, 10) -- TODO: need a test here...
+///
+
+-*
+  restart
+  needsPackage "GroebnerAlgebras"
+*-
+TEST ///
+  -- xj * xi = cij * xi * xj + dij, j > i.
+  -- Let's compute the Associative Algebra of a Groebner Algebra.
+  R = QQ[x_0, x_1, x_2];
+  Cl = homogeneousCliffordAlgebra({x_0^2, x_1^2, x_2^2})
+  I = toAssociativeAlgebra Cl
   ideal NCGB(I, 10) -- TODO: need a test here...
 ///
 
@@ -575,6 +646,8 @@ TEST ///
   I = ideal(y*x - 3*x*y - 7*x - 2*y - 4)
   NCGB(I, 10)
   N(y^3*x^3)
+
+  -- for simple example which is not associative
   ///
 -- todo to get groebnerAlgebra up and running:
 -- want, e.g: A = groebnerAlgebra(S, C, D) -- C elements are in coeff ring of S, D elements are in S.
