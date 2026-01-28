@@ -5,20 +5,25 @@
 -- 3. We don't allow the base to be a polynomial ring (i.e. towers not handled).
 newPackage(
     "GroebnerAlgebras",
-    Version => "0.1",
-    Date => "06 October 2025",
+    Version => "0.2",
+    Date => "13 January 2026",
     Headline => "routines related to non-commutative rings with good Groebner theory",
-    Authors => {{ Name => "Michael K. Brown",
-		  Email => "mkb0096@auburn.edu",
-		  HomePage => "https://webhome.auburn.edu/~mkb0096/"},
-	        {  Name => "Michael Perlman", 
-	          Email => "mperlman@ua.edu", 
-		  HomePage => "https://sites.google.com/view/michaelperlman/home"},
-	        { Name => "Gregory G. Smith", 
-                  Email => "ggsmith@mast.queensu.ca", 
-                  HomePage => "http://www.mast.queensu.ca/~ggsmith"},
-               {  Name => "", Email => "", HomePage => ""}},
+    Authors => {
+        { Name => "Michael K. Brown",
+            Email => "mkb0096@auburn.edu",
+            HomePage => "https://webhome.auburn.edu/~mkb0096/"},
+        {  Name => "Michael Perlman", 
+            Email => "mperlman@ua.edu", 
+            HomePage => "https://sites.google.com/view/michaelperlman/home"},
+        { Name => "Gregory G. Smith", 
+            Email => "ggsmith@mast.queensu.ca", 
+            HomePage => "http://www.mast.queensu.ca/~ggsmith"},
+        {  Name => "Michael Stillman",
+            Email => "mes15@cornell.edu",
+            HomePage => "https://mikestillman.github.io"}
+        },
     Keywords => {"Noncommutative Algebra"},
+    PackageExports => {"AssociativeAlgebras"}, -- temporary
     AuxiliaryFiles => false,
     DebuggingMode => true
     )
@@ -26,6 +31,7 @@ newPackage(
 export {
     "groebnerAlgebra",
     "quantumPolynomialRing",
+    "toAssociateAlgebra",
     "vZeroWeylAlgebra",
     "weylAlgebra",
     "GroebnerAlgebra",
@@ -85,6 +91,7 @@ makeGroebnerAlgebra(Matrix, Matrix, List) := (C, D, sqIndices) -> (
     GA.baseRings  = append(R.baseRings, R);
     GA.numallvars = nvars;
     GA.cache      = new CacheTable;
+    GA.cache.GroebnerAlgebra = {C, D};
     -- degree promote and lift
     -- warning: the following two functions must be defined before something below,
     --   otherwise (for example) matrix promotion fails due to mismatched degrees.
@@ -178,6 +185,22 @@ isWellDefined GroebnerAlgebra := Boolean => A -> (
     -- - do the cij's needs to be units?
     )
 
+-- XXX
+toAssociateAlgebra = method()
+toAssociateAlgebra GroebnerAlgebra := Ideal => G -> (
+  A := QQ<|reverse gens ring last G.cache.GroebnerAlgebra, Degrees => {1,1,2,2}|>;
+  (C, D) := toSequence G.cache.GroebnerAlgebra;
+  D' := substitute(D, A);
+  nA := numgens A;
+  I1 := ideal flatten for i from 0 to numgens A - 1 list for j from i+1 to numgens A - 1 list (
+      A_(nA-1-j) * A_(nA-1-i) - C_(i,j) * A_(nA-1-i) * A_(nA-1-j) - D'_(i,j)
+      );
+  I2 := ideal for i from 0 to numgens A - 1 list (
+      if D'_(i,i) == 0 then continue else A_(nA-1-i)^2 - D'_(i,i)
+      );
+  I := I1 + I2;
+  I
+  )
 
 -- this is our first attempt at making the Weyl algebra
 -- a newer implementation is below
@@ -347,6 +370,7 @@ TEST ///
 -*
   restart
   needsPackage "GroebnerAlgebras"
+  -- TODO: this test fails
 *-
 TEST ///
   debug Core
@@ -417,6 +441,141 @@ TEST ///
   assert(m == mQQ)
 ///
 
+-*
+-- XXX
+  restart
+  needsPackage "GroebnerAlgebras"
+*-
+TEST ///
+  -- xj * xi = cij * xi * xj + dij, j > i.
+  -- Let's compute the Associative Algebra of a Groebner Algebra.
+  R = QQ[x_0, x_1];
+  Cl = homogeneousCliffordAlgebra({x_0^2, x_1^2})
+  Cl.cache.GroebnerAlgebra
+  needsPackage "AssociativeAlgebras"
+  A = QQ<|reverse gens ring last Cl.cache.GroebnerAlgebra, Degrees => {1,1,2,2}|>
+  (C, D) = toSequence Cl.cache.GroebnerAlgebra
+  D' = substitute(D, A)
+  ring C
+  nA = numgens A
+  I1 = ideal flatten for i from 0 to numgens A - 1 list for j from i+1 to numgens A - 1 list (
+      A_(nA-1-j) * A_(nA-1-i) - C_(i,j) * A_(nA-1-i) * A_(nA-1-j) - D'_(i,j)
+      )
+  I2 = ideal for i from 0 to numgens A - 1 list (
+      if D'_(i,i) == 0 then continue else A_(nA-1-i)^2 - D'_(i,i)
+      )
+  I = I1 + I2
+  see I
+  NCGB(I, 10)
+  see ideal oo
+  ideal(t_2 * t_1 + t_1 * t_2,
+      e_0 * t_1 + t_1 * e_0,
+      e_1 * t_1 + t_1 * e_1,
+
+  K = ideal(e_1 * e_0 - e_0 * e_1, e_0^2 - 4*t_1, e_1^2 - 4*t_2)
+  NCGB(K, 5)
+///
+
+-*
+  restart
+  needsPackage "GroebnerAlgebras"
+*-
+TEST ///
+  -- xj * xi = cij * xi * xj + dij, j > i.
+  -- Let's compute the Associative Algebra of a Groebner Algebra.
+  R = QQ[x_0, x_1];
+  Cl = homogeneousCliffordAlgebra({x_0^2, x_1^2})
+  I = toAssociateAlgebra Cl
+  ideal NCGB(I, 10) -- TODO: need a test here...
+///
+
+-*
+  restart
+  needsPackage "GroebnerAlgebras"
+*-
+TEST ///
+  -- xj * xi = cij * xi * xj + dij, j > i.
+  -- Let's compute the Associative Algebra of a Groebner Algebra.
+  R = QQ[x_0, x_1];
+  Cl = homogeneousCliffordAlgebra({x_0^2, x_1^2})
+  I = toAssociateAlgebra Cl
+  ideal NCGB(I, 10) -- TODO: need a test here...
+///
+
+-*
+  restart
+  needsPackage "GroebnerAlgebras"
+*-
+TEST ///
+  K = frac(QQ[c,d,e,f])
+  R = K<| y, x |>
+  I = ideal(y*x - c*x*y - d*x - e*y - f)
+  NCReductionTwoSided(y*x, I)
+  NCReductionTwoSided(y^2*x, I)
+  NCReductionTwoSided(y*x^2, I)
+  I = ideal(y*x - c*x*y - d*x - e*y - f)
+
+  K = frac(QQ[c_(0,1), c_(0,2), c_(1,2),
+          d_(0,1,0), d_(0,1,1), d_(0,1,2), e_(0,1),
+          d_(0,2,0), d_(0,2,1), d_(0,2,2), e_(0,2),
+          d_(1,2,0), d_(1,2,1), d_(1,2,2), e_(1,2)])
+  R = K<| x_2, x_1, x_0 |>
+  I = ideal(x_1*x_0 - c_(0,1) * x_0*x_1 - d_(0,1,0) * x_0 - d_(0,1,1) * x_1 - d_(0,1,2) * x_2 - e_(0,1),
+      x_2*x_0 - c_(0,2) * x_0*x_2 - d_(0,2,0) * x_0 - d_(0,2,1) * x_1 - d_(0,2,2) * x_2 - e_(0,2),
+      x_2*x_1 - c_(1,2) * x_1*x_2 - d_(1,2,0) * x_0 - d_(1,2,1) * x_1 - d_(1,2,2) * x_2 - e_(1,2))
+  see I  
+  NCReductionTwoSided(x_2 * x_1, I) * x_0
+  F1 = NCReductionTwoSided(oo, I)
+  x_2 * NCReductionTwoSided(x_1 * x_0, I)
+  F2 = NCReductionTwoSided(oo, I)
+  F1 - F2
+
+  lin01 =  d_(0,1,0) * x_0 + d_(0,1,1) * x_1 + d_(0,1,2) * x_2 + e_(0,1)
+  lin02 =  d_(0,2,0) * x_0 + d_(0,2,1) * x_1 + d_(0,2,2) * x_2 + e_(0,2)
+  lin12 =  d_(1,2,0) * x_0 + d_(1,2,1) * x_1 + d_(1,2,2) * x_2 + e_(1,2)
+  assocCond = (c_(0,2) * c_(1,2) * lin01 * x_2 - x_2 * lin01 +
+      c_(1,2) * x_1 * lin02 - c_(0,1) * lin02 * x_1 +
+      lin12 * x_0 - c_(0,1) * c_(0,2) * x_0 * lin12)
+  J = I + ideal(assocCond)
+  assert(NCReductionTwoSided(assocCond, I) == F1 - F2)
+  G = NCReductionTwoSided(assocCond, I)
+  (mons, cfs) = coefficients G
+  L = ideal cfs
+  lift(L, coefficientRing R)
+  lift(oo, ring numerator 1_R)
+  leadCoefficient G
+  leadTerm G
+  NCGB(J, )
+
+  S = ring numerator 1_K
+  L = ideal(c_(0,2)*c_(1,2)*d_(0,1,2)-d_(0,1,2),
+      c_(0,2)*c_(1,2)*d_(0,1,1)-c_(0,1)*c_(1,2)*d_(0,2,2)-c_(1,2)*d_(0,1,1)+c_(1,2)*d_(0,2,2),
+      -c_(0,1)*d_(0,2,1)+c_(1,2)*d_(0,2,1),
+      c_(0,2)*c_(1,2)*d_(0,1,0)-c_(0,1)*c_(0,2)*d_(1,2,2)-c_(0,2)*d_(0,1,0)+c_(0,2)*d_(1,2,2),
+      c_(0,1)*c_(1,2)*d_(0,2,0)-c_(0,1)*c_(0,2)*d_(1,2,1)-c_(0,1)*d_(0,2,0)+c_(0,1)*d_(1,2,1),
+      -c_(0,1)*c_(0,2)*d_(1,2,0)+d_(1,2,0),
+      c_(0,2)*c_(1,2)*e_(0,1)+c_(1,2)*d_(0,1,2)*d_(0,2,0)-
+        c_(0,1)*d_(0,2,2)*d_(1,2,2)-d_(0,1,0)*d_(0,2,2)+
+        d_(0,1,2)*d_(1,2,1)-d_(0,1,1)*d_(1,2,2)+d_(0,2,2)*d_(1,2,2)-e_(0,1),
+      c_(1,2)*d_(0,1,1)*d_(0,2,0)-c_(0,1)*d_(0,2,2)*d_(1,2,1)-d_(0,1,0)*d_(0,2,1)-c_(0,1)*e_(0,2)+c_(1,2)*e_(0,2)+d_(0,2,1)*d_(1,2,2),
+      c_(1,2)*d_(0,1,0)*d_(0,2,0)-c_(0,1)*d_(0,2,2)*d_(1,2,0)-
+        c_(0,1)*c_(0,2)*e_(1,2)-d_(0,1,0)*d_(0,2,0)-d_(0,1,1)*d_(1,2,0)+
+        d_(0,1,0)*d_(1,2,1)+d_(0,2,0)*d_(1,2,2)+e_(1,2),
+      c_(1,2)*e_(0,1)*d_(0,2,0)-c_(0,1)*d_(0,2,2)*e_(1,2)-d_(0,1,0)*e_(0,2)+e_(0,1)*d_(1,2,1)+e_(0,2)*d_(1,2,2)-d_(0,1,1)*e_(1,2)
+      )
+
+  factor L_0
+  factor L_1
+  factor L_2
+  factor L_3
+  netList for f in L_* list factor f
+  -- 
+
+  R = QQ<| y, x |>
+  I = ideal(y*x - 3*x*y - 7*x - 2*y - 4)
+  NCGB(I, 10)
+  N(y^3*x^3)
+  ///
 -- todo to get groebnerAlgebra up and running:
 -- want, e.g: A = groebnerAlgebra(S, C, D) -- C elements are in coeff ring of S, D elements are in S.
 --  1. in m2 directory in Macaulay2: m2/polyrings.m2: newWeylAlgebra, Ring Monoid.
@@ -438,3 +597,4 @@ restart
 installPackage "GroebnerAlgebras"
 viewHelp "GroebnerAlgebras"
 
+-- in the engine.
