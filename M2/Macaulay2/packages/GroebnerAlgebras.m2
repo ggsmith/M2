@@ -585,16 +585,88 @@ TEST ///
   NCReductionTwoSided(y^2*x, I)
   NCReductionTwoSided(y*x^2, I)
   I = ideal(y*x - c*x*y - d*x - e*y - f)
+///
 
-  K = frac(QQ[c_(0,1), c_(0,2), c_(1,2),
+-*
+  restart
+  needsPackage "GroebnerAlgebras"
+  -- XXX This is the example of noncommutative P2's we worked on on 4 Feb 2026.
+*-
+TEST ///
+  K = QQ[c_(0,1), c_(0,2), c_(1,2),
           d_(0,1,0), d_(0,1,1), d_(0,1,2), e_(0,1),
           d_(0,2,0), d_(0,2,1), d_(0,2,2), e_(0,2),
-          d_(1,2,0), d_(1,2,1), d_(1,2,2), e_(1,2)])
+          d_(1,2,0), d_(1,2,1), d_(1,2,2), e_(1,2)]
   R = K<| x_2, x_1, x_0 |>
   I = ideal(x_1*x_0 - c_(0,1) * x_0*x_1 - d_(0,1,0) * x_0 - d_(0,1,1) * x_1 - d_(0,1,2) * x_2 - e_(0,1),
       x_2*x_0 - c_(0,2) * x_0*x_2 - d_(0,2,0) * x_0 - d_(0,2,1) * x_1 - d_(0,2,2) * x_2 - e_(0,2),
       x_2*x_1 - c_(1,2) * x_1*x_2 - d_(1,2,0) * x_0 - d_(1,2,1) * x_1 - d_(1,2,2) * x_2 - e_(1,2))
-  see I  
+  see I
+
+  f10 = I_0
+  f20 = I_1
+  f21 = I_2
+
+  g210 = (x_2*x_1*x_0 - f21 * x_0 - c_(1,2) * x_1 * f20 - c_(0,2)*c_(1,2) * f10 * x_2
+      - d_(1,2,2) * f20 - (c_(1,2) * d_(0,2,0) + d_(1,2,1)) * f10
+      )
+
+  g210' = (x_2*x_1*x_0 - x_2 * f10 - c_(0,1) * f20 * x_1 - c_(0,1) * c_(0,2) * x_0 * f21
+      - (c_(0,1) * d_(0,2,2) + d_(0,1,1)) * f21
+      - d_(0,1,0) * f20
+      )
+  g210 - g210'
+  (terms oo)/leadCoefficient
+  J = ideal for f in oo list sub(f, K)
+
+  see J
+  elapsedTime compsJ = decompose J;
+
+  Jc = ideal(c_(1,2))
+  positions(compsJ, i -> not isSubset(ideal(c_(1,2) * c_(0,1) * c_(0,2)), i))
+  compsJ1 = compsJ_oo
+  see compsJ1_0
+
+  netList compsJ1
+  -- this one is pretty easy.
+  eliminate(compsJ1_0, {d_(1,2,2), c_(0,1), d_(0,2,0)})
+  eliminate(compsJ1_0, {c_(0,1), d_(0,1,0), d_(0,2,0), d_(0,1,1)})
+
+  --
+  see compsJ1_1
+  eliminate(compsJ1_1, {c_(0,1), c_(0,2), c_(1,2)})
+
+  --
+  see compsJ1_2
+  eliminate(compsJ1_2, {d_(1,2,0), d_(0,2,1),d_(0,2,0) })
+  
+  see compsJ1_3
+  eliminate(compsJ1_3, {d_(1,2,0), d_(0,1,2), d_(0,1,0), c_(0,1)})
+  phi = map(K, K, {c_(1,2) => c_(1,2) + 1, c_(0,2) => c_(0,2) + 1})
+  eliminate(compsJ1_3, {d_(1,2,0), d_(0,1,2), d_(0,1,0), c_(0,1)})
+  L3 = phi oo
+  res L3
+  see oo
+
+  see compsJ1_4
+  eliminate(compsJ1_4, {d_(0,2,1), d_(0,1,2), d_(0,1,1)})
+  see oo
+  codim compsJ1_4
+
+  see compsJ1_5
+///
+
+///
+  -- this is perhaps no longer relevant.
+  H = new MutableHashTable
+  H#(1,0) = x_1*x_0 - I_0
+  H#(2,1) = x_2*x_1 - I_2
+  H#(2,0) = x_2*x_0 - I_1
+
+  H#(0,2,1) = x_0 * H#(2,1)
+  H#(1,0,2) = H#(1,0) * x_2
+  H#(2,0,1) = H#(2,0) * x_1 - c_(0,2) * H#(0,2,1) - d_(0,2,2) * H#(1,2)
+  
   NCReductionTwoSided(x_2 * x_1, I) * x_0
   F1 = NCReductionTwoSided(oo, I)
   x_2 * NCReductionTwoSided(x_1 * x_0, I)
