@@ -1,5 +1,30 @@
 // Copyright 2025 The Macaulay2 Authors
 
+// TODO(11 Feb 2026, for next week)
+// Implement the non-commutative Groebner algebra multiplication.
+// f = c1 x^a1 + c2 x^a2 + ... + cr x^ar // polynomial in the Groebner algebra.
+// compute c * x^b * f // c is in the base ring/field, x^b is a monomial in normal form/
+// compute c * ci * x^b * x^ai as a polynomial in normal form.
+// add all the results together.
+
+// computing x^b * x^a.
+// x^b1 * x_i * x_j * x^a1
+//   i < j: result is just the monomial.
+//   i > j: x^b1 * (cji * x_j * x_i + dji) * x^a1
+//      = cji * x^b1 * x_j * x_i * x^a1  +  x^b1 * dji * x^a1
+//      = cji * mult(x^b1, x_j) * mult(x_i, x^a1)
+
+// need: mult(x^a, x_i), mult(x_i, x^a)
+// these return full polynomials.
+// 
+// f = m1 + m2 + ..., g = n1 + n2 + ..., sums of monomials
+// f*g
+// f*n, or m*g
+// m*n (m, n are in order, given by exponent vectors)
+// m * xi^ei, returns a polynomial
+// m * xi
+// xj^aj * xi^ai
+
 #pragma once
 
 #include "poly.hpp"
@@ -19,6 +44,9 @@ class GroebnerAlgebra : public PolyRing
   GroebnerAlgebra() : mC(nullptr), mD(nullptr), mSquaringIndices() {}
   virtual ~GroebnerAlgebra() {}
 
+private:
+  Nterm* mult_by_variable(int v, Nterm* f) const;
+  
  public:
   static GroebnerAlgebra *create(const Matrix* C,
                                  const Matrix* D,

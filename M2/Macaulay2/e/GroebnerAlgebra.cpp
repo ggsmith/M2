@@ -55,15 +55,120 @@ void GroebnerAlgebra::text_out(buffer &o) const
 
 /////////////////
 
-ring_elem GroebnerAlgebra::mult_by_term(const ring_elem f,
-                                    const ring_elem c,
-                                    const_monomial m) const
-// Computes c*m*f
+Nterm* GroebnerAlgebra::mult_by_variable(int v, Nterm* f) const
+// v is the integer index of a variable in the GroebnerAlgebra.
+// f is a polynomial in normal form as a linked list of Nterm's.
 {
   polyheap result(this);
 
-  // TODO: write this function
+  for (Nterm& t : f)
+    {
+      // multiply g := xv * t, add it to result.
+      // commute the variable xv across the monomial in the term t.
+      // monomial t in f:  [i0, i1, i2, i3, ..., ir] where i0 <= i1 <= ...
+      // variable v.
+      // v > i0: C_** * [i0, v, i1, ...] + D**.
+      result.add(g);
+    }
+  
+  
   return result.value();
+}
+
+// TODO: Feb 25, 2026: write these functions.
+Nterm* GroebnerAlgebra::mult_var_var(int v, int w)
+// might want to assume v >= w here.
+{
+  // lookup of the result
+}
+Nterm* GroebnerAlgebra::mult_exp_var(exponents_t a, int w)
+// let v be the last variable of a, a' = a/x_v
+// v >= w: mult_exp_poly(a', mult_var_var(v, w))
+// v < w: just create a single monomial
+{
+}
+
+Nterm* GroebnerAlgebra::mult_exp_poly(exponents_t a, const Nterm* ft)
+//  x^a * ft
+// sum of coeff * mult_exp_exp(a, term of ft).
+{
+}
+
+Nterm* GroebnerAlgebra::mult_poly_exp(const Nterm* ft, exponents_t a)
+//  ft * x^a
+// sum of coeff * mult_exp_exp(term of ft, a).
+{
+}
+
+Nterm* GroebnerAlgebra::mult_exp_exp(exponents_t a, exponents_t b)
+{
+  // find the first non-zero element of b, say x_i
+  // b' = b/x_i
+  // mult_poly_exp(mult_exp_var(a, i), b')
+}
+
+Nterm* GroebnerAlgebra::mult_term_term(const Nterm* ft, const Nterm* gt)
+// multiply the terms ft * gt, ft = cf * x^a, gt = cg * x^b.
+// need to multiply x^a, x^b, then mult result by cf*cg.
+// needs lots of mult_exp_exp's, and mult coefficients to a polynomial.
+{
+}
+
+Nterm* GroebnerAlgebra::mult_poly_poly(const Nterm* f, const Nterm* g)
+// multiply the two polynomials  
+  // create a polyheap
+  // mult_term_term(ft, gt), for all ft in f, gt in g.
+  // return their sum.
+
+{
+}
+///////////////////////////////////////////
+
+ring_elem GroebnerAlgebra::mult(const ring_elem f, const ring_elem g)
+{
+  // one line function
+}
+
+ring_elem GroebnerAlgebra::mult_by_term(const ring_elem f, // in Groebner algebra
+                                        const ring_elem c, // in base field/ring.
+                                        const_monomial m) const // a monomial in Groebner algebra.
+// Computes c*m*f (m is on the left...!)
+{
+  //  polyheap result(this);
+
+  // unpack m into an exponent vector: expf[0], ..., expf[nvars_-1]
+  exponents_t expf = new int[nvars_];
+  M_->to_expvector(m, expf);
+
+  Nterm* result = copy(f);
+  ring_elem resultr = result;
+  mult_coeff_to(c, resultr);
+  result = resultr;
+  for (int i=0; i < nvars_; ++i)
+    for (int j=0; j < expf[j]; ++j)
+      {
+        Nterm* thiselem = mult_by_variable(j, result);
+        result = thiselem;
+      }
+  
+  // TODO: write this function
+  delete [] expf;
+  //  return result.value();
+  return result;
+
+#if 0
+  // What our method might be here: (c is in the base field/ring: say QQ.
+  f is a polynomial in normal form
+    
+  x(j1) x(j2) ... x(jk) f
+
+    need:
+
+    (1) c * xj * f (c = constant, xj = variable, f is a polynomial in normal form).
+    (2) xj * (monomial) = xj * (product of variables <= xj) * product of variables > xj)
+    (3) xj * (product of variables < xj) * xj^r
+    
+#endif
 }
 
 //////////////////////////////////
