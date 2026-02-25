@@ -36,6 +36,7 @@ class CoefficientRingZZp;
 class FreeModule;
 class Ring;
 class SolvableAlgebra;
+class GroebnerAlgebra;
 class WeylAlgebra;
 class gbvectorHeap;
 class stash;
@@ -61,7 +62,8 @@ class GBRing : public our_new_delete
   friend class GBKernelComputation;
   friend class WeylAlgebra;
   friend class SkewPolynomialRing;
-
+  friend class GroebnerAlgebra;
+  
   // The FreeModule is used for the following:
   //  (a) degree of an element
   //  (b) monomial order comparing monomials with different lead components
@@ -100,6 +102,9 @@ class GBRing : public our_new_delete
   bool is_solvable;
   const SolvableAlgebra *solvable;
 
+  bool is_groebner_algebra;  // true if this is a GroebnerAlgebra
+  const GroebnerAlgebra *groebnerAlgebra;
+  
  protected:
   ring_elem _one;
 

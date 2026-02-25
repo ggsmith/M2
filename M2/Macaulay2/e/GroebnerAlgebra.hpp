@@ -44,9 +44,16 @@ class GroebnerAlgebra : public PolyRing
   GroebnerAlgebra() : mC(nullptr), mD(nullptr), mSquaringIndices() {}
   virtual ~GroebnerAlgebra() {}
 
-private:
+private:  
   Nterm* mult_by_variable(int v, Nterm* f) const;
-  
+  Nterm* mult_var_var(int v, int w);
+  Nterm* mult_exp_var(exponents_t a, int w);
+  Nterm* mult_exp_poly(exponents_t a, const Nterm* ft);
+  Nterm* mult_poly_exp(const Nterm* ft, exponents_t a);
+  Nterm* mult_exp_exp(exponents_t a, exponents_t b);
+  Nterm* mult_term_term(const Nterm* ft, const Nterm* gt);
+  Nterm* mult_poly_poly(const Nterm* f, const Nterm* g);
+
  public:
   static GroebnerAlgebra *create(const Matrix* C,
                                  const Matrix* D,

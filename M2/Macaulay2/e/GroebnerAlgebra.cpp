@@ -68,7 +68,7 @@ Nterm* GroebnerAlgebra::mult_by_variable(int v, Nterm* f) const
       // monomial t in f:  [i0, i1, i2, i3, ..., ir] where i0 <= i1 <= ...
       // variable v.
       // v > i0: C_** * [i0, v, i1, ...] + D**.
-      result.add(g);
+      // result.add(g);
     }
   
   
@@ -124,10 +124,10 @@ Nterm* GroebnerAlgebra::mult_poly_poly(const Nterm* f, const Nterm* g)
 }
 ///////////////////////////////////////////
 
-ring_elem GroebnerAlgebra::mult(const ring_elem f, const ring_elem g)
-{
-  // one line function
-}
+// ring_elem GroebnerAlgebra::mult(const ring_elem f, const ring_elem g)
+// {
+//   // one line function
+// }
 
 ring_elem GroebnerAlgebra::mult_by_term(const ring_elem f, // in Groebner algebra
                                         const ring_elem c, // in base field/ring.

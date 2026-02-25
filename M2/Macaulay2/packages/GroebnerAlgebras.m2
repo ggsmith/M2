@@ -620,7 +620,7 @@ TEST ///
   J = ideal for f in oo list sub(f, K)
 
   see J
-  elapsedTime compsJ = decompose J;
+  elapsedTime compsJ = decompose J; -- 31 sec
 
   Jc = ideal(c_(1,2))
   positions(compsJ, i -> not isSubset(ideal(c_(1,2) * c_(0,1) * c_(0,2)), i))
@@ -646,7 +646,6 @@ TEST ///
   eliminate(compsJ1_3, {d_(1,2,0), d_(0,1,2), d_(0,1,0), c_(0,1)})
   L3 = phi oo
   res L3
-  see oo
 
   see compsJ1_4
   eliminate(compsJ1_4, {d_(0,2,1), d_(0,1,2), d_(0,1,1)})
