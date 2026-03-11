@@ -37,6 +37,7 @@ class GroebnerAlgebra : public PolyRing
 {
   const Matrix * mC; // scalars showing up in commutation of variables
   const Matrix * mD; // trailing terms showing up in commutation of variables
+  Nterm*** mMultTable;
   std::vector<int> mSquaringIndices;
 
   void initialize1();
@@ -46,13 +47,14 @@ class GroebnerAlgebra : public PolyRing
 
 private:  
   Nterm* mult_by_variable(int v, Nterm* f) const;
-  Nterm* mult_var_var(int v, int w);
-  Nterm* mult_exp_var(exponents_t a, int w);
-  Nterm* mult_exp_poly(exponents_t a, const Nterm* ft);
-  Nterm* mult_poly_exp(const Nterm* ft, exponents_t a);
-  Nterm* mult_exp_exp(exponents_t a, exponents_t b);
-  Nterm* mult_term_term(const Nterm* ft, const Nterm* gt);
-  Nterm* mult_poly_poly(const Nterm* f, const Nterm* g);
+  
+  const Nterm* mult_var_var(int v, int w) const;
+  Nterm* mult_exp_var(exponents_t a, int w) const;
+  Nterm* mult_exp_poly(exponents_t a, const Nterm* ft) const;
+  Nterm* mult_poly_exp(const Nterm* ft, exponents_t a) const;
+  Nterm* mult_exp_exp(exponents_t a, exponents_t b) const;
+  Nterm* mult_term_term(const Nterm* ft, const Nterm* gt) const;
+  Nterm* mult_poly_poly(const Nterm* f, const Nterm* g) const;
 
  public:
   static GroebnerAlgebra *create(const Matrix* C,

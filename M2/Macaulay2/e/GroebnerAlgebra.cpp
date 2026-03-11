@@ -76,51 +76,107 @@ Nterm* GroebnerAlgebra::mult_by_variable(int v, Nterm* f) const
 }
 
 // TODO: Feb 25, 2026: write these functions.
-Nterm* GroebnerAlgebra::mult_var_var(int v, int w)
+const Nterm* GroebnerAlgebra::mult_var_var(int v, int w) const
 // might want to assume v >= w here.
 {
+  // Let's make an array Nterm* [][], where the (v,w) entry, for v >= w
+  //   is the RHS of x_v * x_w = C_(wv) * x_w *x_v + D_(wv).
   // lookup of the result
+  return mMultTable[v][w]; // warning: this is meant to be const.
 }
-Nterm* GroebnerAlgebra::mult_exp_var(exponents_t a, int w)
-// let v be the last variable of a, a' = a/x_v
-// v >= w: mult_exp_poly(a', mult_var_var(v, w))
-// v < w: just create a single monomial
+Nterm* GroebnerAlgebra::mult_exp_var(exponents_t a, int j) const
+// let i be the last variable of a, a' = a/x_i
+// i >= j: mult_exp_poly(a', mult_var_var(i, j))
+// i < j: just create a single monomial
 {
+  Nterm* result = nullptr;
+  int i;
+  for (i=nvars_ - 1; i >= 0 and a[i] == 0; --i) { }
+  if (i == -1)
+    {
+      // make a into a Nterm* and return it.
+    }
+  if (i < j)
+    {
+      a[j]++;
+      // convert a to Nterm*
+      result = nullptr; //
+      a[j]--;
+    }
+  else
+    {
+      a[i]--;
+      const Nterm* f = mult_var_var(i, j);
+      result = mult_exp_poly(a, f);
+      a[i]++;
+    }
+  return result;
 }
 
-Nterm* GroebnerAlgebra::mult_exp_poly(exponents_t a, const Nterm* ft)
+Nterm* GroebnerAlgebra::mult_exp_poly(exponents_t a, const Nterm* ft) const
 //  x^a * ft
 // sum of coeff * mult_exp_exp(a, term of ft).
 {
 }
 
-Nterm* GroebnerAlgebra::mult_poly_exp(const Nterm* ft, exponents_t a)
+Nterm* GroebnerAlgebra::mult_poly_exp(const Nterm* ft, exponents_t a) const
 //  ft * x^a
 // sum of coeff * mult_exp_exp(term of ft, a).
 {
 }
 
-Nterm* GroebnerAlgebra::mult_exp_exp(exponents_t a, exponents_t b)
+Nterm* GroebnerAlgebra::mult_exp_exp(exponents_t a, exponents_t b) const
+// find the first non-zero element of b, say x_i
+// b' = b/x_i
+// mult_poly_exp(mult_exp_var(a, i), b')
 {
-  // find the first non-zero element of b, say x_i
-  // b' = b/x_i
-  // mult_poly_exp(mult_exp_var(a, i), b')
+  int i;
+  for (i=0; i < nvars_ and b[i] == 0; ++i) { }
+  if (i == nvars_)
+    {
+      // make a into a Nterm* and return it.
+    }
+  b[i]--;
+  Nterm* f = mult_exp_var(a, i);
+  Nterm* result = mult_poly_exp(f, b);
+  b[i]++;
+  return result;
 }
 
-Nterm* GroebnerAlgebra::mult_term_term(const Nterm* ft, const Nterm* gt)
+Nterm* GroebnerAlgebra::mult_term_term(const Nterm* ft, const Nterm* gt) const
 // multiply the terms ft * gt, ft = cf * x^a, gt = cg * x^b.
 // need to multiply x^a, x^b, then mult result by cf*cg.
 // needs lots of mult_exp_exp's, and mult coefficients to a polynomial.
 {
+  ring_elem cf = ft->coeff;
+  ring_elem cg = gt->coeff;
+  exponents_t expf = new int[nvars_];
+  exponents_t expg = new int[nvars_];
+  M_->to_expvector(ft->monom, expf);
+  M_->to_expvector(gt->monom, expg);
+  
+  Nterm* fg = mult_exp_exp(expf, expg);
+  // TODO: find this function!
+  //  mult_coeff_to_poly(K_->mult(cf, cg), fg);
+
+  delete [] expf;
+  delete [] expg;
+  return fg;
 }
 
-Nterm* GroebnerAlgebra::mult_poly_poly(const Nterm* f, const Nterm* g)
-// multiply the two polynomials  
-  // create a polyheap
-  // mult_term_term(ft, gt), for all ft in f, gt in g.
-  // return their sum.
-
+Nterm* GroebnerAlgebra::mult_poly_poly(const Nterm* f, const Nterm* g) const
+// multiply the two polynomials f*g
 {
+  polyheap result(this);
+
+  for (const Nterm* s = f; s != nullptr; s = s->next)
+    for (const Nterm* t = g; t != nullptr; t = t->next)
+      {
+        Nterm* st = mult_term_term(s, t);
+        result.add(st);
+      }
+  
+  return result.value();
 }
 ///////////////////////////////////////////
 
