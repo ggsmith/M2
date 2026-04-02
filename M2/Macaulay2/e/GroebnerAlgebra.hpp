@@ -46,8 +46,6 @@ class GroebnerAlgebra : public PolyRing
   virtual ~GroebnerAlgebra() {}
 
 private:  
-  Nterm* mult_by_variable(int v, Nterm* f) const;
-  
   const Nterm* mult_var_var(int v, int w) const;
   Nterm* mult_exp_var(exponents_t a, int w) const;
   Nterm* mult_exp_poly(exponents_t a, const Nterm* ft) const;

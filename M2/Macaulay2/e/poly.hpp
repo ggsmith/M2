@@ -206,6 +206,8 @@ class PolyRing : public PolyRingFlat
                              long lobound,
                              long hibound) const;
 
+  void mult_coeff_to_poly(const ring_elem a, Nterm* f) const;
+
   virtual void mult_coeff_to(ring_elem a, ring_elem &f) const;
   virtual void divide_coeff_to(ring_elem &f, ring_elem a) const;
 

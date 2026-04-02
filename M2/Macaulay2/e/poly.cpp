@@ -784,6 +784,16 @@ ring_elem PolyRing::mult_by_term(const ring_elem f,
   return head.next;
 }
 
+// TODO: This assumes that a is a nonzerodivisor.
+void PolyRing::mult_coeff_to_poly(const ring_elem a, Nterm* f) const
+{
+  for (Nterm* t = f; t != nullptr; t = t->next)
+    {
+      ring_elem tmp = t->coeff;
+      t->coeff = K_->mult(a, tmp);
+    }
+}
+
 void PolyRing::mult_coeff_to(ring_elem a, ring_elem &f) const
 {
   Nterm *t = f;
