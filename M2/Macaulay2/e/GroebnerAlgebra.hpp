@@ -37,11 +37,14 @@ class GroebnerAlgebra : public PolyRing
 {
   const Matrix * mC; // scalars showing up in commutation of variables
   const Matrix * mD; // trailing terms showing up in commutation of variables
-  Nterm*** mMultTable;
   std::vector<int> mSquaringIndices;
+  const Matrix * mE; // actual polynomials for rewriting.
+  
+  Nterm*** mMultTable; // encoding the actual polynomials x_j * x_i should rewrite to.
 
   void initialize1();
   bool initialize_groebner_algebra(const Matrix* C, const Matrix* D, const std::vector<int>& squaringIndices);
+  bool initialize_groebner_algebra(const Matrix* E);
   GroebnerAlgebra() : mC(nullptr), mD(nullptr), mSquaringIndices() {}
   virtual ~GroebnerAlgebra() {}
 
@@ -59,6 +62,8 @@ private:
                                  const Matrix* D,
                                  M2_arrayint squaring_indices);
 
+  static GroebnerAlgebra *create(const Matrix* E);
+  
   virtual bool is_commutative_ring() const { return false; }
   virtual bool is_groebner_algebra() const { return true; }
   virtual const GroebnerAlgebra *cast_to_GroebnerAlgebra() const { return this; }

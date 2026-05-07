@@ -121,6 +121,9 @@ const Ring* /* or null */ IM2_Ring_groebner_algebra(const Matrix* C,
    The resulting associative algebra A has a monomial basis of (sorted) monomials of S.
    This ring A is returned
 */
+
+const Ring* /* or null */ IM2_Ring_groebner_algebra_from_polys(const Matrix* E);
+
   
 const Ring * /* or null */ rawRingM2FreeAlgebra(const Ring *coefficientRing,
                                                 M2_ArrayString names,

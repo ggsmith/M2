@@ -588,6 +588,11 @@ export rawGroebnerAlgebra(e:Expr):Expr := (
      );
 setupfun("rawGroebnerAlgebra",rawGroebnerAlgebra);
 
+export rawGroebnerAlgebra1(e:Expr):Expr := (
+     when e is E:RawMatrixCell do toExpr(Ccode(RawRingOrNull,"IM2_Ring_groebner_algebra_from_polys(", E.p, ")"))
+     else WrongArg("a raw matrix"));
+setupfun("rawGroebnerAlgebra1",rawGroebnerAlgebra1);
+
 export rawSolvableAlgebra(e:Expr):Expr := (
      when e is a:Sequence do 
      if length(a) == 2 then 

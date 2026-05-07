@@ -55,6 +55,7 @@ exportFrom_Core {
     "raw",
     "rawCoefficient",
     "rawGroebnerAlgebra",
+    "rawGroebnerAlgebra1",
     "rawPairs",
     "rawPromote",
     "RawRing"
@@ -143,7 +144,79 @@ makeGroebnerAlgebra(Matrix, Matrix, List) := (C, D, sqIndices) -> (
     --     RM#"has quotient elements" = true);
     )
 
+-- new version
+-- TODO: doc what E is
+makeGroebnerAlgebra Matrix := GroebnerAlgebra => E -> (
+    -- TODO: want to allow the coefficient ring R to be a polynomial ring, this means
+    -- distinguishing between Monoid and FlatMonoid.
+    GA := new GroebnerAlgebra from rawGroebnerAlgebra1(raw E); -- RM below ==> GA
+    R := coefficientRing ring E;
+    M := monoid ring E;
+    F := M; -- will be the flat monoid, once we allow this
+    nvars := numgens M;
+    GA.isCommutative = false;
+    GA.monoid     = M;
+    GA.FlatMonoid = F;
+    GA.BaseRing   = R;
+    GA.char       = R.char;
+    GA.baseRings  = append(R.baseRings, R);
+    GA.numallvars = nvars;
+    GA.cache      = new CacheTable;
+    GA.cache.GroebnerAlgebra = E;
+    -- degree promote and lift
+    -- warning: the following two functions must be defined before something below,
+    --   otherwise (for example) matrix promotion fails due to mismatched degrees.
+    --   Not sure why yet!
+    GA.promoteDegree = (
+	if F.Options.DegreeMap === null
+	then makepromoter degreeLength GA -- means the degree map is zero
+	else (
+	    dm := F.Options.DegreeMap;
+	    nd := F.Options.DegreeRank;
+	    degs -> apply(degs, deg -> degreePad(nd, dm deg))
+            )
+        );
+    GA.liftDegree = (
+	if F.Options.DegreeLift === null
+	then makepromoter degreeLength R -- lifing the zero degree map
+	else (
+	    lm := F.Options.DegreeLift;
+	    degs -> apply(degs, lm)
+            )
+        );
+    GA.generators = apply(nvars, i -> GA_i);
+    GA.generatorSymbols     = M.generatorSymbols;
+    GA.generatorExpressions = M.generatorExpressions;
+    -- degrees
+    GA.degreesRing   = F.degreesRing;
+    GA.degreesMonoid = F.degreesMonoid;
+    -- indexes of variables
+    GA.index        = hashTable apply(GA.generatorSymbols, 0 ..< nvars,  identity);
+    GA.indexSymbols = hashTable join(
+	apply(if R.?indexSymbols then pairs R.indexSymbols else {},
+	    (sym, x) -> sym => new GA from rawPromote(raw GA, raw x)),
+	apply(GA.generatorSymbols, GA.generators, identity)
+	);
+    GA.indexStrings = applyKeys(GA.indexSymbols, toString);
+    -- coefficients of a monomial
+    GA _ M := (f,m) -> new R from rawCoefficient(R.RawRing, raw f, raw m);
+    -- for printing
+    processMons := (coeffs, monoms) -> if #coeffs === 0 then expression 0 else sum(coeffs, monoms,
+	(c, m) -> expression(if c == 1 then 1 else promote(c, R)) * expression(new M from m));
+    expression GA := f -> processMons rawPairs(raw R, raw f);
+    -- promotions
+    commonEngineRingInitializations GA; -- TODO next time: to be tested.
+    return GA;
+    -----------------------------------------------------------------------------
+    -- if R#?"has quotient elements" or isQuotientOf(PolynomialRing, R) then (
+    --     RM.RawRing = rawQuotientRing(RM.RawRing, R.RawRing);
+    --     RM#"has quotient elements" = true);
+    )
+
+
+
 groebnerAlgebra = method()
+-- TODO: make a version here that creates E directly, calls the above version of makeGroebnerAlgebra
 groebnerAlgebra(HashTable, HashTable) := GroebnerAlgebra => (C, D) -> (
     -- the values of D are elements of a commutative polynomial ring S = R[x0, ..., x_(n-1)]
     -- C has keys (i,j), $0 \le i < j \le n-1$, and its values are all
@@ -253,7 +326,7 @@ TEST ///
   I_2
   (x_2 * x_1) * x_0 - I_2 * x_0
   
-XXX  f21 * x_0
+--XXX  f21 * x_0
   
   associativeEquations I
   
@@ -523,12 +596,12 @@ TEST ///
       if D'_(i,i) == 0 then continue else A_(nA-1-i)^2 - D'_(i,i)
       )
   I = I1 + I2
-  see I
+  --see I
   NCGB(I, 10)
-  see ideal oo
+  --see ideal oo
   ideal(t_2 * t_1 + t_1 * t_2,
       e_0 * t_1 + t_1 * e_0,
-      e_1 * t_1 + t_1 * e_1,
+      e_1 * t_1 + t_1 * e_1)
 
   K = ideal(e_1 * e_0 - e_0 * e_1, e_0^2 - 4*t_1, e_1^2 - 4*t_2)
   NCGB(K, 5)
@@ -742,3 +815,30 @@ installPackage "GroebnerAlgebras"
 viewHelp "GroebnerAlgebras"
 
 -- in the engine.
+///
+restart
+debug needsPackage "GroebnerAlgebras"
+R = QQ[x,y,z]
+E = matrix {{x^2, -x*y, -x*z, y^2, -y*z, z^2}}
+G = makeGroebnerAlgebra E
+
+R = QQ[x,y]
+E = matrix{{x^2, x*y + 1, y^2}}
+G = makeGroebnerAlgebra E
+y
+x
+y*x
+y*x*y
+y^4*x
+W = QQ[x,y,WeylAlgebra => {x => y}]
+y^4*x
+use G
+x
+y
+y*x
+x^3*y^2
+use G
+elapsedTime (y+1)^12*(x+2)^10
+use W
+elapsedTime (y+1)^12*(x+2)^10
+///

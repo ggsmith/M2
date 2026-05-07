@@ -210,6 +210,20 @@ const Ring* /* or null */ IM2_Ring_groebner_algebra(const Matrix* C,
   }
 }
 
+const Ring* /* or null */ IM2_Ring_groebner_algebra_from_polys(const Matrix* E)
+{
+  try
+    {
+      GroebnerAlgebra *result = GroebnerAlgebra::create(E);
+      intern_polyring(result);
+      return result;
+  } catch (const exc::engine_error& e)
+    {
+      ERROR(e.what());
+      return nullptr;
+  }
+}
+
 
 const Ring /* or null */ *IM2_Ring_solvable_algebra(const Ring *R,
                                                     const Matrix *Q)

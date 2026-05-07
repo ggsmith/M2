@@ -1,11 +1,13 @@
 // Copyright 2025 The Macaulay2 Authors
 
-// TODO made 11 Mar 2026
-// 1. populate mMultTable in the constructor of GroebnerAlgebra
-// 2. make sure mult_var_var is accessing this table correctly.
-// 3. Test it!
+// TODO made 11 Mar 2026, updated on 3 April 2026.
+// DONE 1. populate mMultTable in the constructor of GroebnerAlgebra
+// 1a. get squares working
+// 1b. clean up the interface, removing the old stuff, or having front end produce the "E" matrix.
+// DONE 2. make sure mult_var_var is accessing this table correctly.
+// 3. Test it! TODO: write a number of tests, using WeylAlgebra and Associative algebras to try both, use toString, compare.
 // 4. GBRing stuff.
-// 5. Should we be caching any multiplications.
+// 5. Should we be caching any multiplications?
 // 6. how do we do x_i^2? Does it change or not?
 
 #include "GroebnerAlgebra.hpp"
@@ -27,6 +29,66 @@ bool GroebnerAlgebra::initialize_groebner_algebra(const Matrix* C,
   this->mSquaringIndices = squaring_indices;
 
   return true;
+}
+
+bool GroebnerAlgebra::initialize_groebner_algebra(const Matrix* E)
+{
+  // We create the mult table for x_j * x_i.
+
+  this->mE = E;
+  int nvars = n_vars();
+  mMultTable = new Nterm** [nvars];
+  for (int i=0; i<nvars; ++i)
+    {
+      mMultTable[i] = new Nterm* [nvars];
+      for (int j=0; j<nvars; ++j)
+        mMultTable[i][j] = nullptr;
+    }
+
+  int v = 0;
+  int w = 0;
+  for (int k = 0; k < E->n_cols(); ++k)
+    {
+      ring_elem f = E->elem(0, k);
+      ring_elem copyf = this->copy(f);
+      Nterm* ourf = copyf.poly_val;
+      std::cout << "setting " << w << " and " << v << std::endl;
+      mMultTable[w][v] = ourf;
+      if (w < nvars - 1) ++w;
+      else {
+        if (v < nvars - 1)
+          {
+            ++v;
+            w = v;
+          }
+        else
+          {
+            // we are hopefully done.  Need to give an error if the sizes are wrong.
+          }
+      }
+    }
+  return true;
+}
+
+GroebnerAlgebra *GroebnerAlgebra::create(const Matrix* E) // of length binomial(n+1,2), over a polynomial ring in n variables.
+{
+  std::cout << "We are in the c++ constructor" << std::endl;
+  const Ring* R = E->get_ring();
+  const PolynomialRing *P = R->cast_to_PolynomialRing();
+  if (P == nullptr)
+    {
+      throw exc::engine_error("expected a matrix over a polynomial ring");
+    }
+
+  GroebnerAlgebra *result = new GroebnerAlgebra;
+  result->initialize_poly_ring(P->getCoefficients(), P->getMonoid());
+
+  //  std::vector<int> squaring { M2_arrayint_to_stdvector<int>(squaring_indices) };
+  
+  if (!result->initialize_groebner_algebra(E)) return nullptr;
+
+  //TODO: what is this?   result->gb_ring_ = GBRing::create_GroebnerAlgebra(K, M, weyl);
+  return result;
 }
 
 GroebnerAlgebra *GroebnerAlgebra::create(const Matrix* C,
@@ -83,7 +145,7 @@ Nterm* GroebnerAlgebra::mult_exp_var(exponents_t a, int j) const
     {
       result = (var(j)).poly_val; // is this const?
     }
-  else if (i < j)
+  else if (i <= j) // TODO: with squares, this should be i < j.
     {
       a[j]++;
       ring_elem f = make_logical_term(K_, K_->one(), a);
@@ -92,7 +154,7 @@ Nterm* GroebnerAlgebra::mult_exp_var(exponents_t a, int j) const
     }
   else
     {
-      // here j <= i
+      // here j < i // TODO: with squares, here j <= i
       a[i]--;
       const Nterm* f = mult_var_var(i, j);
       result = mult_exp_poly(a, f);
