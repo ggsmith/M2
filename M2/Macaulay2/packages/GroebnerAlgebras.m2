@@ -76,77 +76,80 @@ isGroebnerAlgebra QuotientRing := Boolean => R -> isGroebnerAlgebra ambient R
 isGroebnerAlgebra GroebnerAlgebra := Boolean => R -> true
 
 -- private function which does the work of Ring Array
-makeGroebnerAlgebra = method()
-makeGroebnerAlgebra(Matrix, Matrix, List) := (C, D, sqIndices) -> (
-    -- TODO: want to allow the coefficient ring R to be a polynomial ring, this means
-    -- distinguishing between Monoid and FlatMonoid.
-    GA := new GroebnerAlgebra from rawGroebnerAlgebra(raw C, raw D, sqIndices); -- RM below ==> GA
-    R := coefficientRing ring D;
-    M := monoid ring D;
-    F := M; -- will be the flat monoid, once we allow this
-    nvars := numgens M;
-    GA.isCommutative = false;
-    GA.monoid     = M;
-    GA.FlatMonoid = F;
-    GA.BaseRing   = R;
-    GA.char       = R.char;
-    GA.baseRings  = append(R.baseRings, R);
-    GA.numallvars = nvars;
-    GA.cache      = new CacheTable;
-    GA.cache.GroebnerAlgebra = {C, D};
-    -- degree promote and lift
-    -- warning: the following two functions must be defined before something below,
-    --   otherwise (for example) matrix promotion fails due to mismatched degrees.
-    --   Not sure why yet!
-    GA.promoteDegree = (
-	if F.Options.DegreeMap === null
-	then makepromoter degreeLength GA -- means the degree map is zero
-	else (
-	    dm := F.Options.DegreeMap;
-	    nd := F.Options.DegreeRank;
-	    degs -> apply(degs, deg -> degreePad(nd, dm deg))
-            )
-        );
-    GA.liftDegree = (
-	if F.Options.DegreeLift === null
-	then makepromoter degreeLength R -- lifing the zero degree map
-	else (
-	    lm := F.Options.DegreeLift;
-	    degs -> apply(degs, lm)
-            )
-        );
-    GA.generators = apply(nvars, i -> GA_i);
-    GA.generatorSymbols     = M.generatorSymbols;
-    GA.generatorExpressions = M.generatorExpressions;
-    -- degrees
-    GA.degreesRing   = F.degreesRing;
-    GA.degreesMonoid = F.degreesMonoid;
-    -- indexes of variables
-    GA.index        = hashTable apply(GA.generatorSymbols, 0 ..< nvars,  identity);
-    GA.indexSymbols = hashTable join(
-	apply(if R.?indexSymbols then pairs R.indexSymbols else {},
-	    (sym, x) -> sym => new GA from rawPromote(raw GA, raw x)),
-	apply(GA.generatorSymbols, GA.generators, identity)
-	);
-    GA.indexStrings = applyKeys(GA.indexSymbols, toString);
-    -- coefficients of a monomial
-    GA _ M := (f,m) -> new R from rawCoefficient(R.RawRing, raw f, raw m);
-    -- for printing
-    processMons := (coeffs, monoms) -> if #coeffs === 0 then expression 0 else sum(coeffs, monoms,
-	(c, m) -> expression(if c == 1 then 1 else promote(c, R)) * expression(new M from m));
-    expression GA := f -> processMons rawPairs(raw R, raw f);
-    -- promotions
-    commonEngineRingInitializations GA; -- TODO next time: to be tested.
-    return GA;
-    -----------------------------------------------------------------------------
-    -- if R#?"has quotient elements" or isQuotientOf(PolynomialRing, R) then (
-    --     RM.RawRing = rawQuotientRing(RM.RawRing, R.RawRing);
-    --     RM#"has quotient elements" = true);
-    )
+-- makeGroebnerAlgebra = method()
+-- makeGroebnerAlgebra(Matrix, Matrix, List) := (C, D, sqIndices) -> (
+--     -- TODO: want to allow the coefficient ring R to be a polynomial ring, this means
+--     -- distinguishing between Monoid and FlatMonoid.
+--     GA := new GroebnerAlgebra from rawGroebnerAlgebra(raw C, raw D, sqIndices); -- RM below ==> GA
+--     R := coefficientRing ring D;
+--     M := monoid ring D;
+--     F := M; -- will be the flat monoid, once we allow this
+--     nvars := numgens M;
+--     GA.isCommutative = false;
+--     GA.monoid     = M;
+--     GA.FlatMonoid = F;
+--     GA.BaseRing   = R;
+--     GA.char       = R.char;
+--     GA.baseRings  = append(R.baseRings, R);
+--     GA.numallvars = nvars;
+--     GA.cache      = new CacheTable;
+--     GA.cache.GroebnerAlgebra = {C, D};
+--     -- degree promote and lift
+--     -- warning: the following two functions must be defined before something below,
+--     --   otherwise (for example) matrix promotion fails due to mismatched degrees.
+--     --   Not sure why yet!
+--     GA.promoteDegree = (
+-- 	if F.Options.DegreeMap === null
+-- 	then makepromoter degreeLength GA -- means the degree map is zero
+-- 	else (
+-- 	    dm := F.Options.DegreeMap;
+-- 	    nd := F.Options.DegreeRank;
+-- 	    degs -> apply(degs, deg -> degreePad(nd, dm deg))
+--             )
+--         );
+--     GA.liftDegree = (
+-- 	if F.Options.DegreeLift === null
+-- 	then makepromoter degreeLength R -- lifing the zero degree map
+-- 	else (
+-- 	    lm := F.Options.DegreeLift;
+-- 	    degs -> apply(degs, lm)
+--             )
+--         );
+--     GA.generators = apply(nvars, i -> GA_i);
+--     GA.generatorSymbols     = M.generatorSymbols;
+--     GA.generatorExpressions = M.generatorExpressions;
+--     -- degrees
+--     GA.degreesRing   = F.degreesRing;
+--     GA.degreesMonoid = F.degreesMonoid;
+--     -- indexes of variables
+--     GA.index        = hashTable apply(GA.generatorSymbols, 0 ..< nvars,  identity);
+--     GA.indexSymbols = hashTable join(
+-- 	apply(if R.?indexSymbols then pairs R.indexSymbols else {},
+-- 	    (sym, x) -> sym => new GA from rawPromote(raw GA, raw x)),
+-- 	apply(GA.generatorSymbols, GA.generators, identity)
+-- 	);
+--     GA.indexStrings = applyKeys(GA.indexSymbols, toString);
+--     -- coefficients of a monomial
+--     GA _ M := (f,m) -> new R from rawCoefficient(R.RawRing, raw f, raw m);
+--     -- for printing
+--     processMons := (coeffs, monoms) -> if #coeffs === 0 then expression 0 else sum(coeffs, monoms,
+-- 	(c, m) -> expression(if c == 1 then 1 else promote(c, R)) * expression(new M from m));
+--     expression GA := f -> processMons rawPairs(raw R, raw f);
+--     -- promotions
+--     commonEngineRingInitializations GA; -- TODO next time: to be tested.
+--     return GA;
+--     -----------------------------------------------------------------------------
+--     -- if R#?"has quotient elements" or isQuotientOf(PolynomialRing, R) then (
+--     --     RM.RawRing = rawQuotientRing(RM.RawRing, R.RawRing);
+--     --     RM#"has quotient elements" = true);
+--     )
 
 -- new version
 -- TODO: doc what E is
-makeGroebnerAlgebra Matrix := GroebnerAlgebra => E -> (
+groebnerAlgebra = method()
+
+-- basic version.  All other constructors call this one.
+groebnerAlgebra Matrix := GroebnerAlgebra => E -> (
     -- TODO: want to allow the coefficient ring R to be a polynomial ring, this means
     -- distinguishing between Monoid and FlatMonoid.
     GA := new GroebnerAlgebra from rawGroebnerAlgebra1(raw E); -- RM below ==> GA
@@ -214,43 +217,56 @@ makeGroebnerAlgebra Matrix := GroebnerAlgebra => E -> (
     )
 
 
-
-groebnerAlgebra = method()
--- TODO: make a version here that creates E directly, calls the above version of makeGroebnerAlgebra
-groebnerAlgebra(HashTable, HashTable) := GroebnerAlgebra => (C, D) -> (
-    -- the values of D are elements of a commutative polynomial ring S = R[x0, ..., x_(n-1)]
-    -- C has keys (i,j), $0 \le i < j \le n-1$, and its values are all
-    -- non-zero elements of the coefficient ring R.
-    -- D also has keys (i,j), $0 \le i < j \le n-1$, and its values
-    --  are "small" entries in the ring S (typically, linear polynomials).
-    --  (i.e. in S, x_i*x_j > all monomials in D#(i,j)).
-    -- D can also (optionally) have keys (i,i), whose value is a polynomial in S,
-    --  less than xi^2 in the monomial order
-    -- Creates the ring A = R<x0, ..., x_(n-1)> with multiplication
-    --  x_j * x_i = C#(i,j) * x_i * x_j + D#(i,j)
-    --  x_i^2 = D#(i,i)
-    -- (where the D#(i,i) and D#(i,j) are considered as elements of A).
-    Ss := unique for f in values D list ring f;
-    if #Ss != 1 then error "expected all elements of second hash table to be in the same polynomial ring";
-    S := Ss#0;
-    R := coefficientRing S;
-    Rs := unique for f in values C list ring f;
-    if #Rs =!= 1 or Rs#0 =!= R then
-        error "expected all elements of the first hash table to be in the same coefficient ring";
-    if not all(values C, f -> f != 0) then error "expected non-zero elements (in fact units?) of the coefficient rings";
-    
-    n := numgens S;
-    matC := mutableMatrix(R, n, n);
-    for kv in pairs C do matC_(kv#0) = kv#1;
-    matC = matrix matC;
-    matD := mutableMatrix(S, n, n);
-    for kv in pairs D do matD_(kv#0) = kv#1;
-    matD = matrix matD;
-    sqIndices := for i when i < n list if D#?(i,i) then i else continue;
-    GA := makeGroebnerAlgebra(matC, matD, sqIndices);
-    return GA
+groebnerAlgebra HashTable := GroebnerAlgebra => H -> (
+    -- H: hashtable whose keys are (i,j),
+    -- H has keys (i,j), $0 \le i \le j \le n-1$, and its values are all
+    --  in a (commutative) polynomial ring R, with n variables.
+    v := values H;
+    if #v === 0 then error "no multiplication given";
+    R := ring v#0; 
+    if not all(v, f -> ring f === R) then
+        error "expected all values in the hash table to be in the same ring";
+    n := numgens R;
+    E := matrix {flatten for i from 0 to n-1 list for j from i to n-1 list H#{i,j} ?? 0_R};
+    groebnerAlgebra E
     )
 
+-- TODO: make a version here that creates E directly, calls the above version of makeGroebnerAlgebra
+-- groebnerAlgebra(HashTable, HashTable) := GroebnerAlgebra => (C, D) -> (
+--     -- the values of D are elements of a commutative polynomial ring S = R[x0, ..., x_(n-1)]
+--     -- C has keys (i,j), $0 \le i < j \le n-1$, and its values are all
+--     -- non-zero elements of the coefficient ring R.
+--     -- D also has keys (i,j), $0 \le i < j \le n-1$, and its values
+--     --  are "small" entries in the ring S (typically, linear polynomials).
+--     --  (i.e. in S, x_i*x_j > all monomials in D#(i,j)).
+--     -- D can also (optionally) have keys (i,i), whose value is a polynomial in S,
+--     --  less than xi^2 in the monomial order
+--     -- Creates the ring A = R<x0, ..., x_(n-1)> with multiplication
+--     --  x_j * x_i = C#(i,j) * x_i * x_j + D#(i,j)
+--     --  x_i^2 = D#(i,i)
+--     -- (where the D#(i,i) and D#(i,j) are considered as elements of A).
+--     Ss := unique for f in values D list ring f;
+--     if #Ss != 1 then error "expected all elements of second hash table to be in the same polynomial ring";
+--     S := Ss#0;
+--     R := coefficientRing S;
+--     Rs := unique for f in values C list ring f;
+--     if #Rs =!= 1 or Rs#0 =!= R then
+--         error "expected all elements of the first hash table to be in the same coefficient ring";
+--     if not all(values C, f -> f != 0) then error "expected non-zero elements (in fact units?) of the coefficient rings";
+    
+--     n := numgens S;
+--     matC := mutableMatrix(R, n, n);
+--     for kv in pairs C do matC_(kv#0) = kv#1;
+--     matC = matrix matC;
+--     matD := mutableMatrix(S, n, n);
+--     for kv in pairs D do matD_(kv#0) = kv#1;
+--     matD = matrix matD;
+--     sqIndices := for i when i < n list if D#?(i,i) then i else continue;
+--     GA := makeGroebnerAlgebra(matC, matD, sqIndices);
+--     return GA
+--     )
+
+-- Write this
 isWellDefined GroebnerAlgebra := Boolean => A -> (
     -- what we need to check:
     -- - for all i,j, lead term of dij  < lead term of xi*xj (in the order on S).
@@ -259,7 +275,7 @@ isWellDefined GroebnerAlgebra := Boolean => A -> (
     -- - do the cij's needs to be units?
     )
 
--- XXX
+-- Rewrite this
 toAssociativeAlgebra = method()
 toAssociativeAlgebra GroebnerAlgebra := Ideal => G -> (
   A := QQ<|reverse gens ring last G.cache.GroebnerAlgebra|>;
@@ -326,7 +342,7 @@ TEST ///
   I_2
   (x_2 * x_1) * x_0 - I_2 * x_0
   
---XXX  f21 * x_0
+  --  f21 * x_0
   
   associativeEquations I
   
@@ -351,6 +367,39 @@ TEST ///
 
 
 vZeroWeylAlgebra = method()
+-- vZeroWeylAlgebra(ZZ,ZZ) := GroebnerAlgebra => (n,m) -> (
+--     -- creates the zeroth piece V^0(D_{n+m}) of the Kashiwara--Malgrange V-filtration of D_{n+m} along V(t_1..t_m)
+--     -- here, D_{n+m} is the Weyl algebra on n+m variables, x_1..x_n and t_1..t_m
+--     -- the generators of this algebra are x_1..x_n, dx_1..dx_n, -dt_1*t_1...-dt_m*t_m, t_1..t_m
+--     -- the relations come from the realization of this algebra as a subalgebra of D_{n+m}
+--     -- it is common to use the variable s_i for -dt_i*t_i
+--     -- when m=0, this function returns the Weyl algebra D_n
+--     -- when m=1, this algebra can be uses to calculate Bernstein--Sato polynomials following Briancon--Maisonobe
+--     -- when m>=1, this algebra is important in the theory of mixed Hodge modules
+--     -- the coefficient ring will be QQ
+--     x:= getSymbol "x";
+--     dx:= getSymbol "dx";
+--     s:= getSymbol "s";
+--     t:= getSymbol "t";
+--     S:= QQ[x_1..x_n, dx_1..dx_n, s_1..s_m, t_1..t_m];
+--     C := hashTable flatten for i from 0 to 2*n+2*m-2 list for j from i+1 to 2*n+2*m-1 list (
+--         (i,j) => 1_QQ);
+--     D := hashTable flatten for i from 0 to 2*n+2*m-2 list (
+--         for j from i+1 to 2*n+2*m-1 list (
+--             if (i<n) and (j==n+i) then
+--                 (i,j) => -1_S
+--             else if (i>=2*n) and (i<2*n+m) and (j==m+i) then
+--                 (i,j) => - S_(m+i)
+--             else
+--                 continue
+--                 --(i,j) => 0_S
+--             )
+--         );
+--     -- to do: call groebnerAlgebra
+--     (C, D, S)
+--     )
+
+
 vZeroWeylAlgebra(ZZ,ZZ) := GroebnerAlgebra => (n,m) -> (
     -- creates the zeroth piece V^0(D_{n+m}) of the Kashiwara--Malgrange V-filtration of D_{n+m} along V(t_1..t_m)
     -- here, D_{n+m} is the Weyl algebra on n+m variables, x_1..x_n and t_1..t_m
@@ -366,21 +415,17 @@ vZeroWeylAlgebra(ZZ,ZZ) := GroebnerAlgebra => (n,m) -> (
     s:= getSymbol "s";
     t:= getSymbol "t";
     S:= QQ[x_1..x_n, dx_1..dx_n, s_1..s_m, t_1..t_m];
-    C := hashTable flatten for i from 0 to 2*n+2*m-2 list for j from i+1 to 2*n+2*m-1 list (
-        (i,j) => 1_QQ);
-    D := hashTable flatten for i from 0 to 2*n+2*m-2 list (
-        for j from i+1 to 2*n+2*m-1 list (
+    H := hashTable flatten for i from 0 to 2*n+2*m-2 list (
+        for j from i to 2*n+2*m-1 list (
             if (i<n) and (j==n+i) then
-                (i,j) => -1_S
+                {i,j} => S_i*S_j + 1_S
             else if (i>=2*n) and (i<2*n+m) and (j==m+i) then
-                (i,j) => - S_(m+i)
+                {i,j} => S_i*S_j - S_(m+i)
             else
-                continue
-                --(i,j) => 0_S
+                {i,j} => S_i * S_j
             )
         );
-    -- to do: call groebnerAlgebra
-    (C, D, S)
+    groebnerAlgebra H
     )
 
 weylAlgebra = method()
@@ -472,13 +517,53 @@ SeeAlso
 -* Test section *-
 
 -*
+-- XXX
+restart
+debug needsPackage "GroebnerAlgebras"
+*-
+TEST ///
+  R = QQ[x,y,z]
+  E = matrix {{x^2, -x*y, -x*z, y^2, -y*z, z^2}}
+  G = groebnerAlgebra E
+  assert(y*x == -x*y)
+
+  H = hashTable({0,0} => x^2,
+      {0,1} => -x*y,
+      {0,2} => -x*z,
+      {1,1} => y^2,
+      {1,2} => -y*z,
+      {2,2} => z^2)
+  G1 = groebnerAlgebra H
+  assert(y*x == -x*y)
+  assert(y^3*x^3 == - x^3*y^3)
+
+  H = hashTable(
+      {0,1} => -x*y,
+      {0,2} => -x*z,
+      {1,2} => -y*z)
+  G2 = groebnerAlgebra H
+  y*x == -x*y
+  x^2 -- wrong
+  y*x^2 -- wrong
+///
+
+-*
   restart
   needsPackage "GroebnerAlgebras"
 *-
 TEST ///
+  G = vZeroWeylAlgebra(2, 2)
+  gens G
+  s_1 * t_1 - t_1 * s_1 == t_1
+  s_1 * t_2 - t_2 * s_1 == 0
+  s_2 * t_2 - t_2 * s_2 == t_2
+
+  dx_1 * x_1 == x_1 * dx_1 + 1
+  dx_2 * x_2 == x_2 * dx_2 + 1
+  dx_2 * dx_1 == dx_1 * dx_2
+  
   W = weylAlgebra(3)
 
-  (C, D, S) = vZeroWeylAlgebra(2, 2)
   describe S
   gens S
   C
@@ -698,7 +783,7 @@ TEST ///
   Jc = ideal(c_(1,2))
   positions(compsJ, i -> not isSubset(ideal(c_(1,2) * c_(0,1) * c_(0,2)), i))
   compsJ1 = compsJ_oo
-  see compsJ1_0
+  netList (compsJ1_0)_*
 
   netList compsJ1
   -- this one is pretty easy.
@@ -706,26 +791,26 @@ TEST ///
   eliminate(compsJ1_0, {c_(0,1), d_(0,1,0), d_(0,2,0), d_(0,1,1)})
 
   --
-  see compsJ1_1
+  netList (compsJ1_1)_*
   eliminate(compsJ1_1, {c_(0,1), c_(0,2), c_(1,2)})
 
   --
-  see compsJ1_2
+  compsJ1_2
   eliminate(compsJ1_2, {d_(1,2,0), d_(0,2,1),d_(0,2,0) })
   
-  see compsJ1_3
+  compsJ1_3
   eliminate(compsJ1_3, {d_(1,2,0), d_(0,1,2), d_(0,1,0), c_(0,1)})
   phi = map(K, K, {c_(1,2) => c_(1,2) + 1, c_(0,2) => c_(0,2) + 1})
   eliminate(compsJ1_3, {d_(1,2,0), d_(0,1,2), d_(0,1,0), c_(0,1)})
   L3 = phi oo
   res L3
 
-  see compsJ1_4
+  compsJ1_4
   eliminate(compsJ1_4, {d_(0,2,1), d_(0,1,2), d_(0,1,1)})
-  see oo
+  oo
   codim compsJ1_4
 
-  see compsJ1_5
+  compsJ1_5
 ///
 
 ///
@@ -821,6 +906,9 @@ debug needsPackage "GroebnerAlgebras"
 R = QQ[x,y,z]
 E = matrix {{x^2, -x*y, -x*z, y^2, -y*z, z^2}}
 G = makeGroebnerAlgebra E
+
+y*x
+z*y*x
 
 R = QQ[x,y]
 E = matrix{{x^2, x*y + 1, y^2}}
